@@ -475,8 +475,11 @@ bool FrameRender::RenderFrame(ID3D11Texture2D *pTexture[][2], vr::VRTextureBound
 	return true;
 }
 
-ComPtr<ID3D11Texture2D> FrameRender::GetTexture()
+ComPtr<ID3D11Texture2D> FrameRender::GetTexture(bool saving)
 {
+	if(saving){
+		SaveTextureAsBytes(m_pD3DRender->GetContext(), m_pStagingTexture.Get(), true);
+	}
 	return m_pStagingTexture;
 }
 

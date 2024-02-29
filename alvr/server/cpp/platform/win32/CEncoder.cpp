@@ -9,7 +9,7 @@
 		}
 
 		
-			CEncoder::~CEncoder()
+		CEncoder::~CEncoder()
 		{
 			if (m_videoEncoder)
 			{
@@ -97,9 +97,9 @@
 				if (m_bExiting)
 					break;
 
-				if (m_FrameRender->GetTexture())
+				if (m_FrameRender->GetTexture(false))
 				{
-					m_videoEncoder->Transmit(m_FrameRender->GetTexture().Get(), m_presentationTime, m_targetTimestampNs, m_scheduler.CheckIDRInsertion());
+					m_videoEncoder->Transmit(m_FrameRender->GetTexture(true).Get(), m_presentationTime, m_targetTimestampNs, m_scheduler.CheckIDRInsertion());
 				}
 
 				m_encodeFinished.Set();
