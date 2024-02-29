@@ -617,7 +617,7 @@ void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY){
         int r_leftY = (decompress_y(m_leftY)+15)/16;
         int r_rightX = (decompress_x(m_rightX)+15)/16-width;
         int r_rightY = (decompress_y(m_rightY)+15)/16;
-        std::ofstream file("C:\\Users\\13513\\ALVR_Private\\ALVR_eyetracking_testforcommit\\FovOptix_dynamicFoveation\\nvValue.csv", std::ios_base::app);
+        std::ofstream file("nvValue.csv", std::ios_base::app);
         // Write the integers to the file, separated by commas
         file << r_leftX << "," << r_leftY << "," << r_rightX << "," << r_rightY << std::endl;
         // Close the file
@@ -629,7 +629,7 @@ void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY){
                     qp_map[j*width*2+i] = static_cast<int8_t>(-19);
                 }
                 else{
-                    qp_map[j*width*2+i] = static_cast<int8_t>(30);
+                    qp_map[j*width*2+i] = static_cast<int8_t>(20);
                 }
             }
         }
@@ -639,7 +639,7 @@ void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY){
                     qp_map[j*width*2+i+width] = static_cast<int8_t>(-19);
                 }
                 else{
-                    qp_map[j*width*2+i+width] = static_cast<int8_t>(30);
+                    qp_map[j*width*2+i+width] = static_cast<int8_t>(20);
                 }
             }
         }

@@ -101,7 +101,7 @@ void VideoEncoderNVENC::Transmit(ID3D11Texture2D *pTexture, uint64_t presentatio
 	//lefty=1074;
 	//rightx=3264;
 	//righty=1168;
-	std::ofstream file("C:\\Users\\13513\\ALVR_Private\\ALVR_eyetracking_testforcommit\\FovOptix_dynamicFoveation\\passing.csv", std::ios_base::app);
+	std::ofstream file("passing.csv", std::ios_base::app);
     // Write the integers to the file, separated by commas
     file << leftxfromrust << "," << leftyfromrust << "," << rightxfromrust << "," << rightyfromrust << std::endl;
     // Close the file

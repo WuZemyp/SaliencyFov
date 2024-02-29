@@ -18,6 +18,7 @@
 #include "shared/d3drender.h"
 #include "openvr_driver.h"
 #include "FFR.h"
+#include "../../analyze_use/helper_f.h"
 
 #define GPU_PRIORITY_VAL 7
 
