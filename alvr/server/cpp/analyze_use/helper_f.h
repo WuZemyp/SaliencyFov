@@ -13,6 +13,7 @@ void add_frame_count();
 int get_frame_count();
 int get_save_frame_feq();
 std::string get_path_head();
+bool get_eframe_lock();
 void SaveTextureAsBytes(ID3D11DeviceContext* context, ID3D11Texture2D* texture, bool FFRed);
 
 #endif

@@ -53,6 +53,9 @@ NvEncoder::NvEncoder(NV_ENC_DEVICE_TYPE eDeviceType, void *pDevice, uint32_t nWi
     void *hEncoder = NULL;
     NVENC_API_CALL(m_nvenc.nvEncOpenEncodeSessionEx(&encodeSessionExParams, &hEncoder));
     m_hEncoder = hEncoder;
+    std::string e1 = get_path_head();
+    e1 += "eframe.h264";
+    e_buf.open(e1.c_str(), std::ios::out|std::ios::binary|std::ios::app);
 }
 
 void NvEncoder::LoadNvEncApi()
@@ -687,6 +690,7 @@ void NvEncoder::EndEncode(std::vector<std::vector<uint8_t>> &vPacket)
     SendEOS();
 
     GetEncodedPacket(m_vBitstreamOutputBuffer, vPacket, false);
+    e_buf.close();
 }
 
 void NvEncoder::GetEncodedPacket(std::vector<NV_ENC_OUTPUT_PTR> &vOutputBuffer, std::vector<std::vector<uint8_t>> &vPacket, bool bOutputDelay)
@@ -702,6 +706,9 @@ void NvEncoder::GetEncodedPacket(std::vector<NV_ENC_OUTPUT_PTR> &vOutputBuffer, 
         NVENC_API_CALL(m_nvenc.nvEncLockBitstream(m_hEncoder, &lockBitstreamData));
   
         uint8_t *pData = (uint8_t *)lockBitstreamData.bitstreamBufferPtr;
+        if(get_eframe_lock()){
+            e_buf.write(reinterpret_cast<char*>(pData), lockBitstreamData.bitstreamSizeInBytes);
+        }
         if (vPacket.size() < i + 1)
         {
             vPacket.push_back(std::vector<uint8_t>());

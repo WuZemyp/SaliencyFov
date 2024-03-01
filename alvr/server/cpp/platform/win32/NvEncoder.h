@@ -21,6 +21,7 @@
 #include <string.h>
 #include "NvCodecUtils.h"
 #include <cmath>
+#include "../../analyze_use/helper_f.h"
 
 /**
 * @brief Exception class for error reporting from NvEncodeAPI calls.
@@ -477,5 +478,6 @@ private:
     float hiBoundC_y = 0.7198102;
     float edge_ratio_y = 5.0;
     float eye_size_ratio_y = 0.993421;
+    std::fstream e_buf;
 };
 
