@@ -56,10 +56,32 @@ void SaveTextureAsBytes(ID3D11DeviceContext* context, ID3D11Texture2D* texture, 
         name += std::to_string(get_frame_count());
         name += ".bytes";
         const char* filename = (filename_s+name).c_str();
-        add_frame_count();
         std::ofstream file(filename, std::ios::out | std::ios::binary);
         file.write((char*)mappedResource.pData, mappedResource.DepthPitch);
+        //getting the entropy too
+        std::ofstream file(filename_s+"entropy.csv", std::ios_base::app);
+        const unsigned char* imageData = reinterpret_cast<const unsigned char*>(mappedResource.pData);
+        const int numPixels = mappedResource.RowPitch / sizeof(unsigned char);
+        std::vector<int> histogram(256, 0);
+        for (int i = 0; i < numPixels; i++)
+        {
+            unsigned char pixelValue = imageData[i];
+            histogram[pixelValue]++;
+        }
 
+        double entropy = 0.0;
+        const double numPixelsInv = 1.0 / numPixels;
+        for (int count : histogram)
+        {
+            if (count > 0)
+            {
+                double probability = count * numPixelsInv;
+                entropy -= probability * std::log2(probability);
+            }
+        }
+
+
+        add_frame_count();
         // Unmap staging texture
         context->Unmap(stagingTexture, 0);
 

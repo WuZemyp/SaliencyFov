@@ -1,5 +1,9 @@
 #include <iostream>
 #include <fstream> 
+#include <vector>
+#include <cmath>
+#include <algorithm>
+#include <numeric>
 #include "../platform/win32/NvEncoderD3D11.h"
 
 #ifndef HELPERS_H
