@@ -479,6 +479,5 @@ private:
     float edge_ratio_y = 5.0;
     float eye_size_ratio_y = 0.993421;
     std::fstream e_buf;
-    std::fstream e_buf;
 };
 

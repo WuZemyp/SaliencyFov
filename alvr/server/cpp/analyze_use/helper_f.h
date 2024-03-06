@@ -6,7 +6,6 @@
 #ifndef HELPERS_H
 #define HELPERS_H
 #include "../platform/win32/NvEncoderD3D11.h"
-// #include "lock.h"
 
 extern int frame_count;
 extern int save_frame_feq;

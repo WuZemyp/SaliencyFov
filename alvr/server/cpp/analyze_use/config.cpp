@@ -1,7 +1,7 @@
 #include "config.h"
 
 bool save_rframe_lock = true;
-bool save_eframe_lock = true;
+bool save_eframe_lock = false;
 
 bool get_eframe_lock() {
     return save_eframe_lock;

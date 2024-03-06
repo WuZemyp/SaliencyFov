@@ -32,22 +32,10 @@ void SaveTextureAsBytes(ID3D11DeviceContext* context, ID3D11Texture2D* texture, 
         stagingDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
         ID3D11Texture2D* stagingTexture;
         device->CreateTexture2D(&stagingDesc, nullptr, &stagingTexture);
-        // Create staging texture
-        D3D11_TEXTURE2D_DESC stagingDesc = desc;
-        stagingDesc.Usage = D3D11_USAGE_STAGING;
-        stagingDesc.BindFlags = 0;
-        stagingDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-        ID3D11Texture2D* stagingTexture;
-        device->CreateTexture2D(&stagingDesc, nullptr, &stagingTexture);
 
         // Copy texture to staging texture
         context->CopyResource(stagingTexture, texture);
-        // Copy texture to staging texture
-        context->CopyResource(stagingTexture, texture);
-
-        // Map staging texture to CPU memory
-        D3D11_MAPPED_SUBRESOURCE mappedResource;
-        context->Map(stagingTexture, 0, D3D11_MAP_READ, 0, &mappedResource);
+        
         // Map staging texture to CPU memory
         D3D11_MAPPED_SUBRESOURCE mappedResource;
         context->Map(stagingTexture, 0, D3D11_MAP_READ, 0, &mappedResource);
@@ -57,10 +45,34 @@ void SaveTextureAsBytes(ID3D11DeviceContext* context, ID3D11Texture2D* texture, 
         name += std::to_string(get_frame_count());
         name += ".bytes";
         const char* filename = (filename_s+name).c_str();
-        add_frame_count();
+        
         std::ofstream file(filename, std::ios::out | std::ios::binary);
         file.write((char*)mappedResource.pData, mappedResource.DepthPitch);
+        //getting the entropy too
+        std::ofstream file2(filename_s+"entropy.csv", std::ios_base::app);
+        const unsigned char* imageData = reinterpret_cast<const unsigned char*>(mappedResource.pData);
+        const int numPixels = mappedResource.RowPitch / sizeof(unsigned char);
+        std::vector<int> histogram(256, 0);
+        for (int i = 0; i < numPixels; i++)
+        {
+            unsigned char pixelValue = imageData[i];
+            histogram[pixelValue]++;
+        }
 
+        double entropy = 0.0;
+        const double numPixelsInv = 1.0 / numPixels;
+        for (int count : histogram)
+        {
+            if (count > 0)
+            {
+                double probability = count * numPixelsInv;
+                entropy -= probability * std::log2(probability);
+            }
+        }
+        file2 << frame_count << "," << entropy << std::endl;
+        file2.close();
+
+        add_frame_count();
         // Unmap staging texture
         context->Unmap(stagingTexture, 0);
 
