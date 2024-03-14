@@ -51,12 +51,20 @@ void SaveTextureAsBytes(ID3D11DeviceContext* context, ID3D11Texture2D* texture, 
         //getting the entropy too
         std::ofstream file2(filename_s+"entropy.csv", std::ios_base::app);
         const unsigned char* imageData = reinterpret_cast<const unsigned char*>(mappedResource.pData);
-        const int numPixels = mappedResource.RowPitch / sizeof(unsigned char);
         std::vector<int> histogram(256, 0);
+        const int numPixels = mappedResource.DepthPitch / sizeof(unsigned char) / 4; // Assuming 4 bytes per pixel (RGBA)
+
+        // Convert RGBA image to grayscale and calculate the histogram of pixel values
         for (int i = 0; i < numPixels; i++)
         {
-            unsigned char pixelValue = imageData[i];
-            histogram[pixelValue]++;
+            unsigned char red = imageData[i * 4];
+            unsigned char green = imageData[i * 4 + 1];
+            unsigned char blue = imageData[i * 4 + 2];
+            
+            // Calculate grayscale value using the luminosity method
+            unsigned char grayscaleValue = static_cast<unsigned char>(0.299 * red + 0.587 * green + 0.114 * blue);
+            
+            histogram[grayscaleValue]++;
         }
 
         double entropy = 0.0;
@@ -69,6 +77,7 @@ void SaveTextureAsBytes(ID3D11DeviceContext* context, ID3D11Texture2D* texture, 
                 entropy -= probability * std::log2(probability);
             }
         }
+
         file2 << frame_count << "," << entropy << std::endl;
         file2.close();
 
