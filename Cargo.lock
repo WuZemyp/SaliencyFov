@@ -190,6 +190,7 @@ dependencies = [
  "bincode",
  "bindgen 0.69.1",
  "cc",
+ "chrono",
  "env_logger",
  "glyph_brush_layout",
  "jni 0.21.1",

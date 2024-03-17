@@ -5,8 +5,11 @@ use std::{
     collections::{HashMap, VecDeque},
     time::{Duration, Instant},
 };
-
+use csv::Writer;
+use std::fs::OpenOptions;
+use std::error::Error;
 const FULL_REPORT_INTERVAL: Duration = Duration::from_millis(500);
+use chrono::{Utc, TimeZone, Local, format::{strftime, StrftimeItems}};
 
 pub struct HistoryFrame {
     target_timestamp: Duration,
@@ -16,6 +19,10 @@ pub struct HistoryFrame {
     frame_encoded: Instant,
     video_packet_bytes: usize,
     total_pipeline_latency: Duration,
+    reported:bool,//wz repeat
+    last_repeat_game_latency:Duration,//wz repeat
+    frame_send_timestamp:i64,
+    
 }
 
 impl Default for HistoryFrame {
@@ -27,8 +34,12 @@ impl Default for HistoryFrame {
             frame_present: now,
             frame_composed: now,
             frame_encoded: now,
-            video_packet_bytes: 0,
+            video_packet_bytes: 0,//total size for this encoded frame
             total_pipeline_latency: Duration::ZERO,
+            reported: false,//wz repeat
+            last_repeat_game_latency: Duration::ZERO,//wz repeat
+            frame_send_timestamp:Utc::now().timestamp_micros(),
+            
         }
     }
 }
@@ -38,7 +49,72 @@ struct BatteryData {
     gauge_value: f32,
     is_plugged: bool,
 }
+fn write_latency_to_csv(filename: &str, latency_values: [String; 16]) -> Result<(), Box<dyn Error>> {
 
+    let mut file = OpenOptions::new().write(true).append(true).open(filename)?;
+    let mut writer = Writer::from_writer(file);
+
+    // Write the latency strings in the next row
+    writer.write_record(&[
+        &latency_values[0],
+        &latency_values[1],
+        &latency_values[2],
+        &latency_values[3],
+        &latency_values[4],
+        &latency_values[5],
+        &latency_values[6],
+        &latency_values[7],
+        &latency_values[8],
+        &latency_values[9],
+
+        &latency_values[10],
+        &latency_values[11],
+        &latency_values[12],
+        &latency_values[13],
+        &latency_values[14],
+        &latency_values[15],
+        // &latency_values[16],
+        // &latency_values[17],
+        // &latency_values[18],
+        // &latency_values[19],
+        // &latency_values[20],
+        // &latency_values[21],
+        // &latency_values[22],
+        // &latency_values[23],
+        // &latency_values[24],
+        // &latency_values[25],
+        // &latency_values[26],
+        // &latency_values[27],
+        // &latency_values[28],
+        // &latency_values[29],
+        // &latency_values[30],
+        // &latency_values[31],
+        // &latency_values[32],
+        // &latency_values[33],
+        // &latency_values[34],
+        // &latency_values[35],
+        // &latency_values[36],
+        // &latency_values[37],
+        // &latency_values[38],
+        // &latency_values[39],
+        // &latency_values[40],
+        // &latency_values[41],
+        // &latency_values[42],
+        // &latency_values[43],
+        // &latency_values[44],
+        // &latency_values[45],
+        // &latency_values[46],
+        // &latency_values[47],
+
+
+
+
+
+
+    ])?;
+
+    Ok(())
+}
 pub struct StatisticsManager {
     history_buffer: VecDeque<HistoryFrame>,
     max_history_size: usize,
@@ -163,7 +239,17 @@ impl StatisticsManager {
             Duration::ZERO
         }
     }
+    pub fn report_send_timestamp(&mut self,target_timestamp: Duration)
+    {
+        if let Some(frame) = self
+            .history_buffer
+            .iter_mut()
+            .find(|frame| frame.target_timestamp == target_timestamp)
+        {
+            frame.frame_send_timestamp = Utc::now().timestamp_micros();
+        }
 
+    }
     pub fn report_packet_loss(&mut self) {
         self.packets_lost_total += 1;
         self.packets_lost_partial_sum += 1;
@@ -190,7 +276,7 @@ impl StatisticsManager {
         {
             frame.total_pipeline_latency = client_stats.total_pipeline_latency;
 
-            let game_time_latency = frame
+            let mut game_time_latency = frame
                 .frame_present
                 .saturating_duration_since(frame.tracking_received);
 
@@ -270,6 +356,14 @@ impl StatisticsManager {
                 self.video_bytes_partial_sum = 0;
                 self.packets_lost_partial_sum = 0;
             }
+            if frame.reported{
+                game_time_latency=game_time_latency.saturating_sub(frame.last_repeat_game_latency);
+                
+                frame.total_pipeline_latency=frame.total_pipeline_latency.saturating_sub(frame.last_repeat_game_latency);
+                //frame.total_pipeline_latency-=frame.last_repeat_game_latency;
+            }
+            frame.reported=true;
+            frame.last_repeat_game_latency+=game_time_latency;
 
             // While not accurate, this prevents NaNs and zeros that would cause a crash or pollute
             // the graph
@@ -282,7 +376,7 @@ impl StatisticsManager {
             // todo: use target timestamp in nanoseconds. the dashboard needs to use the first
             // timestamp as the graph time origin.
             alvr_events::send_event(EventType::GraphStatistics(GraphStatistics {
-                total_pipeline_latency_s: client_stats.total_pipeline_latency.as_secs_f32(),
+                total_pipeline_latency_s: frame.total_pipeline_latency.as_secs_f32(),
                 game_time_s: game_time_latency.as_secs_f32(),
                 server_compositor_s: server_compositor_latency.as_secs_f32(),
                 encoder_s: encoder_latency.as_secs_f32(),
@@ -296,7 +390,26 @@ impl StatisticsManager {
                 nominal_bitrate: self.last_nominal_bitrate_stats.clone(),
                 actual_bitrate_bps: bitrate_bps,
             }));
-
+            let mut timestamp_for_this_frame=(frame.target_timestamp.as_nanos()).to_string();
+            let mut interval_trackingReceived_framePresentInVirtualDevice=(game_time_latency.as_secs_f32()*1000.).to_string();//game latency
+            let mut interval_framePresentInVirtualDevice_frameComposited=(server_compositor_latency.as_secs_f32()*1000.).to_string();//composite latency
+            let mut interval_frameComposited_VideoEncoded=(encoder_latency.as_secs_f32() * 1000.).to_string();//encode latency
+            let mut interval_VideoReceivedByClient_VideoDecoded=(client_stats.video_decode.as_secs_f32() * 1000.).to_string();//decode latency
+            let mut interval_network=((network_latency.as_secs_f32()*1000.).to_string());//network latency(interval_trackingsend_trackingreceived+interval_encodedVideoSend_encodedVideoReceived)
+            let mut client_dequeue_latency=(client_stats.video_decoder_queue.as_secs_f32()*1000.).to_string();
+            let mut client_rendering_latency=(client_stats.rendering.as_secs_f32()*1000.).to_string();
+            let mut client_vsync_queue_latency=(client_stats.vsync_queue.as_secs_f32()*1000.).to_string();
+            let mut interval_total_pipeline=(frame.total_pipeline_latency.as_secs_f32() * 1000.).to_string();//total pipeline latency wz repeat
+            let mut bitrate_statistics=bitrate_bps.to_string();//bitrate bps
+            let mut total_size_for_this_encoded_frame_bytes=frame.video_packet_bytes.to_string();//bytes for this frame
+            let mut frame_send_ts=frame.frame_send_timestamp.to_string();
+            let mut frame_arrival_ts=client_stats.frame_arrival_timestamp.to_string();
+            let mut server_fps=server_fps.to_string();
+            let mut client_fps=client_fps.to_string();
+            let latency_strings=[timestamp_for_this_frame,interval_trackingReceived_framePresentInVirtualDevice,interval_framePresentInVirtualDevice_frameComposited,interval_frameComposited_VideoEncoded,interval_VideoReceivedByClient_VideoDecoded,interval_network,
+            client_dequeue_latency,client_rendering_latency,client_vsync_queue_latency,interval_total_pipeline,bitrate_statistics,total_size_for_this_encoded_frame_bytes,frame_send_ts,
+            frame_arrival_ts,server_fps,client_fps];
+            write_latency_to_csv("statistics.csv", latency_strings);
             network_latency
         } else {
             Duration::ZERO
