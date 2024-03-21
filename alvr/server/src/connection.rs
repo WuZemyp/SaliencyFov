@@ -80,6 +80,32 @@ fn is_streaming(client_hostname: &str) -> bool {
         .map(|c| c.connection_state == ConnectionState::Streaming)
         .unwrap_or(false)
 }
+fn create_csv_file_for_statistics(filename: &str) -> Result<(), Box<dyn Error>> {
+    let mut writer = WriterBuilder::new().has_headers(false).from_writer(File::create(filename)?);
+
+    // Write the column names in the first row
+    writer.write_record(&[
+        "target_ts(nanos)",
+        "game latency(ms)",
+        "composite latency(ms)",
+        "encode latency(ms)",
+        "decode latency(ms)",
+        "network latency(ms)",
+        "decoder_queue_latency(ms)",
+        "rendering(ms)",
+        "vsync_queue_latency(ms)",
+        "total latency(ms)",
+        "target bitrate(mps)",
+        "total size for this frame(encoded)(bytes)",
+        "send_ts(ms)",
+        "arrival_ts(ms)",
+        "server_fps(frame per second)",
+        "client_fps(frame per second)",
+
+    ])?;
+
+    Ok(())
+}
 pub fn compute_eye_gaze_location(
     frame_width: i32,
     frame_height: i32,
@@ -622,14 +648,17 @@ fn connection_pipeline(
                         Ok(packet) => packet,
                         Err(RecvTimeoutError::Timeout) => continue,
                         Err(RecvTimeoutError::Disconnected) => return,
-                    };
+                    };//get encoded video packet from video_channel_sender
 
                 let mut buffer = video_sender.get_buffer(&header).unwrap();
                 // todo: make encoder write to socket buffers directly to avoid copy
                 buffer
                     .get_range_mut(0, payload.len())
                     .copy_from_slice(&payload);
-                video_sender.send(buffer).ok();
+                video_sender.send(buffer).ok();//tcp or udp real send out
+                if let Some(stats) = &mut *STATISTICS_MANAGER.lock() {
+                    stats.report_send_timestamp(header.timestamp);
+                }
             }
         }
     });
@@ -871,7 +900,8 @@ fn connection_pipeline(
                         let frame_height=2336;
                         let (left_frame_x,left_frame_y,right_frame_x,right_frame_y)= compute_eye_gaze_location(frame_width,frame_height,left_yaw as f64, left_pitch as f64, tracking.left_view_fov.left as f64, tracking.left_view_fov.right as f64, tracking.left_view_fov.up as f64, tracking.left_view_fov.down as f64, tracking.right_view_fov.left as f64, tracking.right_view_fov.right as f64, tracking.right_view_fov.up as f64, tracking.right_view_fov.down as f64);
                         BITRATE_MANAGER.lock().report_eye_gaze_update(left_frame_x, left_frame_y, right_frame_x, right_frame_y);
-                        let eye_data=[local_quat_array[0].to_string(),local_quat_array[1].to_string(),local_quat_array[2].to_string(),local_quat_array[3].to_string(),//local combined eye orientation
+                        let tracking_ts= tracking.target_timestamp.as_nanos().to_string();
+                        let eye_data=[tracking_ts,local_quat_array[0].to_string(),local_quat_array[1].to_string(),local_quat_array[2].to_string(),local_quat_array[3].to_string(),//local combined eye orientation
                         local_position_array[0].to_string(),local_position_array[1].to_string(),local_position_array[2].to_string(),//local combined eye position
                         global_quat_array[0].to_string(),global_quat_array[1].to_string(),global_quat_array[2].to_string(),global_quat_array[3].to_string(),//global combined eye orientation
                         global_position_array[0].to_string(),global_position_array[1].to_string(),global_position_array[2].to_string(),//global combined eye position
@@ -970,6 +1000,7 @@ fn connection_pipeline(
 
     let statistics_thread = thread::spawn({
         let client_hostname = client_hostname.clone();
+        create_csv_file_for_statistics("statistics.csv");
         move || {
             while is_streaming(&client_hostname) {
                 let data = match statics_receiver.recv(STREAMING_RECV_TIMEOUT) {
@@ -1424,7 +1455,7 @@ pub extern "C" fn send_haptics(device_id: u64, duration_s: f32, frequency: f32, 
             .ok();
     }
 }
-fn write_latency_to_csv(filename: &str, latency_values: [String; 42]) -> Result<(), Box<dyn Error>> {
+fn write_latency_to_csv(filename: &str, latency_values: [String; 43]) -> Result<(), Box<dyn Error>> {
 
     let mut file = OpenOptions::new().write(true).append(true).open(filename)?;
     let mut writer = Writer::from_writer(file);
@@ -1473,6 +1504,8 @@ fn write_latency_to_csv(filename: &str, latency_values: [String; 42]) -> Result<
         &latency_values[39],
         &latency_values[40],
         &latency_values[41],
+        &latency_values[42],
+
 
 
     ])?;
@@ -1484,6 +1517,7 @@ fn create_csv_file(filename: &str) -> Result<(), Box<dyn Error>> {
 
     // Write the column names in the first row
     writer.write_record(&[
+        "target_ts",
         "local_orientation_x",
         "local_orientation_y",
         "local_orientation_z",

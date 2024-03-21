@@ -4,6 +4,9 @@ use std::{
     collections::VecDeque,
     time::{Duration, Instant},
 };
+use chrono::{Utc, TimeZone};
+
+
 
 struct HistoryFrame {
     input_acquired: Instant,
@@ -68,6 +71,7 @@ impl StatisticsManager {
             .find(|frame| frame.client_stats.target_timestamp == target_timestamp)
         {
             frame.video_packet_received = Instant::now();
+            frame.client_stats.frame_arrival_timestamp=Utc::now().timestamp_micros();
         }
     }
 
