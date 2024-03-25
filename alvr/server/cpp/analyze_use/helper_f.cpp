@@ -81,7 +81,7 @@ void SaveTextureAsBytes(ID3D11DeviceContext* context, ID3D11Texture2D* texture, 
             }
         }
         auto t3 = std::chrono::high_resolution_clock::now();
-        file2 << m_targetTimestampNs << "," << frame_count << "," << entropy << "," << t1-start << "," << t2-t1 << "," << t3-t2 << std::endl;
+        file2 << m_targetTimestampNs << "," << frame_count << "," << entropy << "," << std::chrono::duration_cast<std::chrono::nanoseconds>(t1-start).count() << "," << std::chrono::duration_cast<std::chrono::nanoseconds>(t2-t1).count() << "," << std::chrono::duration_cast<std::chrono::nanoseconds>(t3-t2).count() << std::endl;
         file2.close();
 
         add_frame_count();
