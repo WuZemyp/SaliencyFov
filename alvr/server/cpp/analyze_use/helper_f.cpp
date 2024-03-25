@@ -16,9 +16,10 @@ int get_save_frame_feq(){
     return save_frame_feq;
 }
 
-void SaveTextureAsBytes(ID3D11DeviceContext* context, ID3D11Texture2D* texture, bool FFRed)
+void SaveTextureAsBytes(ID3D11DeviceContext* context, ID3D11Texture2D* texture, bool FFRed, uint64_t m_targetTimestampNs)
 {
     if(get_rframe_lock()){
+        auto start = std::chrono::high_resolution_clock::now();
         ID3D11Device* device;
         texture->GetDevice(&device);
         // Get texture description
@@ -39,7 +40,7 @@ void SaveTextureAsBytes(ID3D11DeviceContext* context, ID3D11Texture2D* texture, 
         // Map staging texture to CPU memory
         D3D11_MAPPED_SUBRESOURCE mappedResource;
         context->Map(stagingTexture, 0, D3D11_MAP_READ, 0, &mappedResource);
-
+        auto t1 = std::chrono::high_resolution_clock::now();
         // Write texture to byte file
         std::string name = "rframe_";
         name += std::to_string(get_frame_count());
@@ -48,6 +49,8 @@ void SaveTextureAsBytes(ID3D11DeviceContext* context, ID3D11Texture2D* texture, 
         
         std::ofstream file(filename, std::ios::out | std::ios::binary);
         file.write((char*)mappedResource.pData, mappedResource.DepthPitch);
+
+        auto t2 = std::chrono::high_resolution_clock::now();
         //getting the entropy too
         std::ofstream file2(filename_s+"entropy.csv", std::ios_base::app);
         const unsigned char* imageData = reinterpret_cast<const unsigned char*>(mappedResource.pData);
@@ -73,12 +76,12 @@ void SaveTextureAsBytes(ID3D11DeviceContext* context, ID3D11Texture2D* texture, 
         {
             if (count > 0)
             {
-                double probability = count * numPixelsInv;
+                double probability = float(count) * numPixelsInv;
                 entropy -= probability * std::log2(probability);
             }
         }
-
-        file2 << frame_count << "," << entropy << std::endl;
+        auto t3 = std::chrono::high_resolution_clock::now();
+        file2 << m_targetTimestampNs << "," << frame_count << "," << entropy << "," << t1-start << "," << t2-t1 << "," << t3-t2 << std::endl;
         file2.close();
 
         add_frame_count();
