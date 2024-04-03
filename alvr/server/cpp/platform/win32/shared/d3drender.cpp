@@ -45,7 +45,7 @@ namespace
 
 	bool CreateDevice( IDXGIAdapter *pDXGIAdapter, ID3D11Device **pD3D11Device, ID3D11DeviceContext **pD3D11Context )
 	{
-		UINT creationFlags = 0;
+		UINT creationFlags = D3D11_CREATE_DEVICE_DEBUG;
 #if _DEBUG
 		creationFlags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
