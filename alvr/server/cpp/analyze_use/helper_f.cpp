@@ -160,11 +160,23 @@ void SaveTextureAsBytes(ID3D11DeviceContext* context, ID3D11Texture2D* texture, 
             }
             return;
         }
-        else{
-            file << mappedOutputTexture.DepthPitch << std::endl;
-            UINT* histogramData = reinterpret_cast<UINT*>(mappedOutputTexture.pData);
-            file << histogramData[0] << " ," << histogramData[1] << std::endl;
+        file << mappedOutputTexture.DepthPitch << std::endl;
+        UINT* histogramData = reinterpret_cast<UINT*>(mappedOutputTexture.pData);
+        double entropy = 0.0;
+        const int numPixels = inputDesc.Width*inputDesc.Height;
+        int counter = 0;
+        const double numPixelsInv = 1.0 / numPixels;
+        for (int i=0; i<256; i++)
+        {
+            int count = (int)histogramData[i];
+            counter += count;
+            if (count > 0)
+            {
+                double probability = float(count) * numPixelsInv;
+                entropy -= probability * std::log2(probability);
+            }
         }
+        file << entropy << ", " << counter << std::endl;
 
 
         context->Unmap(histogramBuffer, 0);
