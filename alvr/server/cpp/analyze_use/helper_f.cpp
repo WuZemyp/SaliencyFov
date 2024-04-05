@@ -183,3 +183,20 @@ void SaveTextureAsBytes(ID3D11DeviceContext* context, ID3D11Texture2D* texture, 
         file.close();
     }
 }
+
+
+
+void CalculateEntropy(ID3D11Device* device, ID3D11DeviceContext* context, ID3D11Texture2D* texture, uint64_t m_targetTimestampNs){
+
+    if(!initialized_CS){
+    //initialize
+        initialized_CS = true;
+        entropyFile.open(filename_s+"entropy.csv", std::ios_base::app);
+
+    }
+}
+
+void CloseFile(){
+    entropyFile << "testing" << std::endl;
+    entropyFile.close();
+}

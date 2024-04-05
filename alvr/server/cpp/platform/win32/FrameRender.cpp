@@ -332,7 +332,6 @@ bool FrameRender::RenderFrame(ID3D11Texture2D *pTexture[][2], vr::VRTextureBound
 	viewport.TopLeftX = 0;
 	viewport.TopLeftY = 0;
 	m_pD3DRender->GetContext()->RSSetViewports(1, &viewport);
-
 	// Clear the back buffer
 	m_pD3DRender->GetContext()->ClearRenderTargetView(m_pRenderTargetView.Get(), DirectX::Colors::MidnightBlue);
 
@@ -478,7 +477,8 @@ bool FrameRender::RenderFrame(ID3D11Texture2D *pTexture[][2], vr::VRTextureBound
 ComPtr<ID3D11Texture2D> FrameRender::GetTexture(bool saving, uint64_t m_targetTimestampNs)
 {
 	if(saving){
-		SaveTextureAsBytes(m_pD3DRender->GetContext(), m_pStagingTexture.Get(), true, m_targetTimestampNs);
+		// SaveTextureAsBytes(m_pD3DRender->GetContext(), m_pStagingTexture.Get(), true, m_targetTimestampNs);
+		CalculateEntropy(m_pD3DRender->GetDevice(), m_pD3DRender->GetContext(), m_pStagingTexture.Get(), m_targetTimestampNs);
 	}
 	return m_pStagingTexture;
 }
