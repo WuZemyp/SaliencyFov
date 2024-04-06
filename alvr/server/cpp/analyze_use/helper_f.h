@@ -3,6 +3,7 @@
 #include <iostream>
 #include <fstream> 
 #include <chrono>
+#include <cstdlib>
 
 #ifndef HELPERS_H
 #define HELPERS_H
@@ -10,17 +11,17 @@
 
 extern int frame_count;
 extern int save_frame_feq;
-
+// extern bool initialized_CS;
 
 void add_frame_count();
 int get_frame_count();
 int get_save_frame_feq();
 
-bool initialized_CS = false;
+
 void SaveTextureAsBytes(ID3D11DeviceContext* context, ID3D11Texture2D* texture, bool FFRed, uint64_t m_targetTimestampNs);
 void CalculateEntropy(ID3D11Device* device, ID3D11DeviceContext* context, ID3D11Texture2D* texture, uint64_t m_targetTimestampNs);
 void CloseFile();
 
-std::ofstream entropyFile;
+
 
 #endif

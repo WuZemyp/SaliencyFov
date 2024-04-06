@@ -2,7 +2,8 @@
 
 int frame_count = 0;
 int save_frame_feq = 5000;
-
+bool initialized_CS = false;
+std::ofstream entropyFile;
 
 void add_frame_count(){
     frame_count++;
@@ -15,6 +16,7 @@ int get_frame_count(){
 int get_save_frame_feq(){
     return save_frame_feq;
 }
+
 
 void SaveTextureAsBytes(ID3D11DeviceContext* context, ID3D11Texture2D* texture, bool FFRed, uint64_t m_targetTimestampNs)
 {
@@ -184,19 +186,31 @@ void SaveTextureAsBytes(ID3D11DeviceContext* context, ID3D11Texture2D* texture, 
     }
 }
 
-
+ID3D11Device* p_Device = nullptr;
 
 void CalculateEntropy(ID3D11Device* device, ID3D11DeviceContext* context, ID3D11Texture2D* texture, uint64_t m_targetTimestampNs){
-
+    if(device!=p_Device){
+        initialized_CS = true;
+        p_Device = device;
+    }
     if(!initialized_CS){
     //initialize
         initialized_CS = true;
         entropyFile.open(filename_s+"entropy.csv", std::ios_base::app);
+        entropyFile << "openFile" << std::endl;
+
+        //Get input texture description
+        D3D11_TEXTURE2D_DESC inputDesc;
+        texture->GetDesc(&inputDesc);
+
+        //Load the compute shader binary from file
+        std::ifstream shaderFile(filename_s+"..\\..\\alvr\\server\\cpp\\analyze_use\\test.cso")
 
     }
+    entropyFile << "test" << std::endl;
 }
 
-void CloseFile(){
+void CloseFile(){ //Cant work
     entropyFile << "testing" << std::endl;
     entropyFile.close();
 }
