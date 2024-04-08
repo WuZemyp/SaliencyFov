@@ -203,6 +203,7 @@ D3D11_BUFFER_DESC bufferDesc;
 ID3D11Buffer* histogramBuffer;
 HRESULT hr;
 UINT Zero[256] = {0};
+UINT thread_use = 16;
 
 void CalculateEntropy(ID3D11Device* device, ID3D11DeviceContext* context, ID3D11Texture2D* texture, uint64_t m_targetTimestampNs){
     auto start = std::chrono::high_resolution_clock::now();
@@ -253,8 +254,8 @@ void CalculateEntropy(ID3D11Device* device, ID3D11DeviceContext* context, ID3D11
         if(FAILED(hr)){
             entropyFile << "Failed to create SRV" << std::endl;
         }
-        dispatchWidth = inputDesc.Width / 16;
-        dispatchHeight = inputDesc.Height / 16;
+        dispatchWidth = inputDesc.Width / thread_use;
+        dispatchHeight = inputDesc.Height / thread_use;
 
         // Create buffer for GPU
         bufferGPUDesc.ByteWidth = sizeof(UINT)*256;
@@ -291,20 +292,28 @@ void CalculateEntropy(ID3D11Device* device, ID3D11DeviceContext* context, ID3D11
         }
 
     }
-
+    auto t1 = std::chrono::high_resolution_clock::now();
     context->CopyResource(inputTexture, texture);
+    auto t2 = std::chrono::high_resolution_clock::now();
     context->CSSetShaderResources(0, 1, &inputTextureSRV);
+    auto t3 = std::chrono::high_resolution_clock::now();
     context->ClearUnorderedAccessViewUint(histogramUAV, Zero);
+    auto t4 = std::chrono::high_resolution_clock::now();
     context->CSSetUnorderedAccessViews(0, 1, &histogramUAV, nullptr);
+    auto t5 = std::chrono::high_resolution_clock::now();
 
     context->CSSetShader(computeShader, nullptr, 0);
+    auto t6 = std::chrono::high_resolution_clock::now();
     context->Dispatch(dispatchWidth, dispatchHeight, 1);
+    auto t7 = std::chrono::high_resolution_clock::now();
 
     context->CopyResource(histogramBuffer, histogramBufferGPU);
+    auto t8 = std::chrono::high_resolution_clock::now();
 
 
     D3D11_MAPPED_SUBRESOURCE mappedOutputTexture;
     hr = context->Map(histogramBuffer, 0, D3D11_MAP_READ, 0, &mappedOutputTexture);
+    auto t9 = std::chrono::high_resolution_clock::now();
     if(FAILED(hr)){
         entropyFile << "failed mapping" << std::endl;
         DWORD error = HRESULT_CODE(hr);
@@ -324,7 +333,7 @@ void CalculateEntropy(ID3D11Device* device, ID3D11DeviceContext* context, ID3D11
     }
 
     UINT* histogramData = reinterpret_cast<UINT*>(mappedOutputTexture.pData);
-    auto t1 = std::chrono::high_resolution_clock::now();
+    auto t10 = std::chrono::high_resolution_clock::now();
     double entropy = 0.0;
     const int numPixels = inputDesc.Width*inputDesc.Height;
     int counter = 0;
@@ -340,7 +349,17 @@ void CalculateEntropy(ID3D11Device* device, ID3D11DeviceContext* context, ID3D11
         }
     }
     auto t2 = std::chrono::high_resolution_clock::now();
-    entropyFile << entropy << ", " << counter << "," << std::chrono::duration_cast<std::chrono::nanoseconds>(t1-start).count() << "," << std::chrono::duration_cast<std::chrono::nanoseconds>(t2-t1).count() << std::endl;
+    entropyFile << entropy << ", " << counter 
+    << "," << std::chrono::duration_cast<std::chrono::nanoseconds>(t1-start).count() 
+    << "," << std::chrono::duration_cast<std::chrono::nanoseconds>(t2-t1).count() 
+    << "," << std::chrono::duration_cast<std::chrono::nanoseconds>(t3-t2).count()
+    << "," << std::chrono::duration_cast<std::chrono::nanoseconds>(t4-t3).count()
+    << "," << std::chrono::duration_cast<std::chrono::nanoseconds>(t5-t4).count()
+    << "," << std::chrono::duration_cast<std::chrono::nanoseconds>(t6-t5).count()
+    << "," << std::chrono::duration_cast<std::chrono::nanoseconds>(t7-t6).count()
+    << "," << std::chrono::duration_cast<std::chrono::nanoseconds>(t8-t7).count()
+    << "," << std::chrono::duration_cast<std::chrono::nanoseconds>(t9-t8).count()
+    << "," << std::chrono::duration_cast<std::chrono::nanoseconds>(t10-t9).count() << std::endl;
     context->Unmap(histogramBuffer, 0);
 }
 
