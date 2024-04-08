@@ -11,7 +11,7 @@ bool get_rframe_lock() {
     return save_rframe_lock;
 }
 
-std::string filename_s = "C:\\Users\\User\\Documents\\NSDI_RLVR\\build\\alvr_streamer_windows\\";
+std::string filename_s = "C:\\Users\\Arnold\\Documents\\NSDI_RLVR\\build\\alvr_streamer_windows\\";
 
 std::string get_path_head(){
     return filename_s;

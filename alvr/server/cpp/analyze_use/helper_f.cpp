@@ -197,13 +197,19 @@ ID3D11ShaderResourceView* inputTextureSRV;
 D3D11_SHADER_RESOURCE_VIEW_DESC inputSRVDesc = {};
 D3D11_BUFFER_DESC bufferGPUDesc;
 ID3D11Buffer* histogramBufferGPU;
+D3D11_BUFFER_DESC entropyGPUDesc;
+ID3D11Buffer* entropyGPU;
 D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc;
 ID3D11UnorderedAccessView* histogramUAV;
+D3D11_UNORDERED_ACCESS_VIEW_DESC uavEntropyDesc;
+ID3D11UnorderedAccessView* EntropyUAV;
 D3D11_BUFFER_DESC bufferDesc;
 ID3D11Buffer* histogramBuffer;
+D3D11_BUFFER_DESC EntropyDesc;
+ID3D11Buffer* EntropyBuffer;
 HRESULT hr;
 UINT Zero[256] = {0};
-UINT thread_use = 16;
+UINT thread_use = 32;
 
 void CalculateEntropy(ID3D11Device* device, ID3D11DeviceContext* context, ID3D11Texture2D* texture, uint64_t m_targetTimestampNs){
     auto start = std::chrono::high_resolution_clock::now();
@@ -230,7 +236,7 @@ void CalculateEntropy(ID3D11Device* device, ID3D11DeviceContext* context, ID3D11
         texture->GetDesc(&inputDesc);
 
         // Load the compute shader binary from file
-        std::ifstream shaderFile(filename_s+"..\\..\\alvr\\server\\cpp\\analyze_use\\test.cso", std::ios::binary);
+        std::ifstream shaderFile(filename_s+"..\\..\\alvr\\server\\cpp\\analyze_use\\test3.cso", std::ios::binary);
         std::vector<char> shaderData((std::istreambuf_iterator<char>(shaderFile)), std::istreambuf_iterator<char>());
 
         // Create the compute Shader object
@@ -273,9 +279,32 @@ void CalculateEntropy(ID3D11Device* device, ID3D11DeviceContext* context, ID3D11
         uavDesc.Format = DXGI_FORMAT_UNKNOWN;
         uavDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
         uavDesc.Buffer.FirstElement = 0;
-        uavDesc.Buffer.NumElements = 256; // assuming 256 bins
+        uavDesc.Buffer.NumElements = 128; // assuming 256 bins
         uavDesc.Buffer.Flags = 0;
         hr = device->CreateUnorderedAccessView(histogramBufferGPU, &uavDesc, &histogramUAV);
+        if(FAILED(hr)){
+            entropyFile << "Failed to create UAV" << std::endl;
+        }
+
+        // Create buffer for GPU
+        entropyGPUDesc.ByteWidth = sizeof(float);
+        entropyGPUDesc.Usage = D3D11_USAGE_DEFAULT;
+        entropyGPUDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE|D3D11_BIND_UNORDERED_ACCESS;
+        entropyGPUDesc.CPUAccessFlags = 0;
+        entropyGPUDesc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+        entropyGPUDesc.StructureByteStride = sizeof(UINT);
+        hr = device->CreateBuffer(&entropyGPUDesc, nullptr, &entropyGPU);
+        if(FAILED(hr)){
+            entropyFile << "Failed to Create entropy" << std::endl;
+        }
+
+        // Create UAV for entropy
+        uavEntropyDesc.Format = DXGI_FORMAT_UNKNOWN;
+        uavEntropyDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
+        uavEntropyDesc.Buffer.FirstElement = 0;
+        uavEntropyDesc.Buffer.NumElements = 1; // assuming 256 bins
+        uavEntropyDesc.Buffer.Flags = 0;
+        hr = device->CreateUnorderedAccessView(entropyGPU, &uavEntropyDesc, &EntropyUAV);
         if(FAILED(hr)){
             entropyFile << "Failed to create UAV" << std::endl;
         }
@@ -291,6 +320,17 @@ void CalculateEntropy(ID3D11Device* device, ID3D11DeviceContext* context, ID3D11
             entropyFile << "Failed to create staging buffer" << std::endl;
         }
 
+        // Create Mapping staging texture 
+        EntropyDesc.ByteWidth = sizeof(float); // assuming 256 bins
+        EntropyDesc.Usage = D3D11_USAGE_STAGING;
+        EntropyDesc.BindFlags = 0;
+        EntropyDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+        EntropyDesc.MiscFlags = 0;
+        hr = device->CreateBuffer(&EntropyDesc, nullptr, &EntropyBuffer);
+        if(FAILED(hr)){
+            entropyFile << "Failed to create staging buffer" << std::endl;
+        }
+
     }
     auto t1 = std::chrono::high_resolution_clock::now();
     context->CopyResource(inputTexture, texture);
@@ -300,6 +340,7 @@ void CalculateEntropy(ID3D11Device* device, ID3D11DeviceContext* context, ID3D11
     context->ClearUnorderedAccessViewUint(histogramUAV, Zero);
     auto t4 = std::chrono::high_resolution_clock::now();
     context->CSSetUnorderedAccessViews(0, 1, &histogramUAV, nullptr);
+    context->CSSetUnorderedAccessViews(1, 1, &EntropyUAV, nullptr);
     auto t5 = std::chrono::high_resolution_clock::now();
 
     context->CSSetShader(computeShader, nullptr, 0);
@@ -307,12 +348,13 @@ void CalculateEntropy(ID3D11Device* device, ID3D11DeviceContext* context, ID3D11
     context->Dispatch(dispatchWidth, dispatchHeight, 1);
     auto t7 = std::chrono::high_resolution_clock::now();
 
-    context->CopyResource(histogramBuffer, histogramBufferGPU);
+    // context->CopyResource(histogramBuffer, histogramBufferGPU);
+    context->CopyResource(EntropyBuffer, entropyGPU);
     auto t8 = std::chrono::high_resolution_clock::now();
 
 
     D3D11_MAPPED_SUBRESOURCE mappedOutputTexture;
-    hr = context->Map(histogramBuffer, 0, D3D11_MAP_READ, 0, &mappedOutputTexture);
+    hr = context->Map(EntropyBuffer, 0, D3D11_MAP_READ, 0, &mappedOutputTexture);
     auto t9 = std::chrono::high_resolution_clock::now();
     if(FAILED(hr)){
         entropyFile << "failed mapping" << std::endl;
@@ -332,24 +374,25 @@ void CalculateEntropy(ID3D11Device* device, ID3D11DeviceContext* context, ID3D11
         return; 
     }
 
-    UINT* histogramData = reinterpret_cast<UINT*>(mappedOutputTexture.pData);
+    // UINT* histogramData = reinterpret_cast<UINT*>(mappedOutputTexture.pData);
+    float* EntropyData = reinterpret_cast<float*>(mappedOutputTexture.pData);
     auto t10 = std::chrono::high_resolution_clock::now();
-    double entropy = 0.0;
-    const int numPixels = inputDesc.Width*inputDesc.Height;
-    int counter = 0;
-    const double numPixelsInv = 1.0 / numPixels;
-    for (int i=0; i<256; i++)
-    {
-        int count = (int)histogramData[i];
-        counter += count;
-        if (count > 0)
-        {
-            double probability = float(count) * numPixelsInv;
-            entropy -= probability * std::log2(probability);
-        }
-    }
-    auto t2 = std::chrono::high_resolution_clock::now();
-    entropyFile << entropy << ", " << counter 
+    // double entropy = 0.0;
+    // const int numPixels = inputDesc.Width*inputDesc.Height;
+    // int counter = 0;
+    // const double numPixelsInv = 1.0 / numPixels;
+    // for (int i=0; i<256; i++)
+    // {
+    //     int count = (int)histogramData[i];
+    //     counter += count;
+    //     if (count > 0)
+    //     {
+    //         double probability = float(count) * numPixelsInv;
+    //         entropy -= probability * std::log2(probability);
+    //     }
+    // }
+    auto t11 = std::chrono::high_resolution_clock::now();
+    entropyFile << EntropyData[0] << ", " 
     << "," << std::chrono::duration_cast<std::chrono::nanoseconds>(t1-start).count() 
     << "," << std::chrono::duration_cast<std::chrono::nanoseconds>(t2-t1).count() 
     << "," << std::chrono::duration_cast<std::chrono::nanoseconds>(t3-t2).count()
@@ -359,7 +402,8 @@ void CalculateEntropy(ID3D11Device* device, ID3D11DeviceContext* context, ID3D11
     << "," << std::chrono::duration_cast<std::chrono::nanoseconds>(t7-t6).count()
     << "," << std::chrono::duration_cast<std::chrono::nanoseconds>(t8-t7).count()
     << "," << std::chrono::duration_cast<std::chrono::nanoseconds>(t9-t8).count()
-    << "," << std::chrono::duration_cast<std::chrono::nanoseconds>(t10-t9).count() << std::endl;
+    << "," << std::chrono::duration_cast<std::chrono::nanoseconds>(t10-t9).count() 
+    << "," << std::chrono::duration_cast<std::chrono::nanoseconds>(t11-t10).count() << std::endl;
     context->Unmap(histogramBuffer, 0);
 }
 
