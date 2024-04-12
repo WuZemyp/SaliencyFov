@@ -56,6 +56,11 @@ NvEncoder::NvEncoder(NV_ENC_DEVICE_TYPE eDeviceType, void *pDevice, uint32_t nWi
     std::string e1 = get_path_head();
     e1 += "eframe.h264";
     e_buf.open(e1.c_str(), std::ios::out|std::ios::binary|std::ios::app);
+    qp_buf.open((get_path_head()+"qp.csv").c_str(), std::ios::out);
+    qp_buf << "time, qp" << std::endl;
+    std::random_device rd;
+    generator.seed(rd());
+    std::uniform_int_distribution<int> dis(1, 51);
 }
 
 void NvEncoder::LoadNvEncApi()
@@ -591,62 +596,70 @@ int NvEncoder::decompress_y(int y){
     return int(compressed_y*eye_size_ratio_y*1216);
 }
 
-void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY){
+void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint64_t targetTimestampNs){
     bool changed = false;
     int width = (m_nWidth+15)/16/2;
     int height = (m_nHeight+15)/16;
     m_numBlocks = (m_nWidth+15)/16*(m_nHeight+15)/16;
     m_qpDeltaMapSize = m_numBlocks * sizeof(NV_ENC_EMPHASIS_MAP_LEVEL);
-    if(changed || m_leftX != leftX){
-        m_leftX = leftX;
-        changed = true;
+    delete[] qp_map;
+    qp_map = new int8_t[m_qpDeltaMapSize];
+    int testQP = dis(generator);
+    for(int i=0; i<m_qpDeltaMapSize; i++){
+        qp_map[i] = testQP;
     }
-    if(changed || m_leftY != leftY){
-        m_leftY = leftY;
-        changed = true;
-    }
-    if(changed || m_rightX != (rightX)){
-        m_rightX = rightX;
-        changed = true;
-    }
-    if(changed || m_rightY != rightY){
-        m_rightY = rightY;
-        changed = true;
-    }
-    // do a central wrap on the four value then ok
-    if(changed){
-        qp_map = new int8_t[m_qpDeltaMapSize];
-        int r_leftX = (decompress_x(m_leftX)+15)/16;
-        int r_leftY = (decompress_y(m_leftY)+15)/16;
-        int r_rightX = (decompress_x(m_rightX)+15)/16-width;
-        int r_rightY = (decompress_y(m_rightY)+15)/16;
-        std::ofstream file("nvValue.csv", std::ios_base::app);
-        // Write the integers to the file, separated by commas
-        file << r_leftX << "," << r_leftY << "," << r_rightX << "," << r_rightY << std::endl;
-        // Close the file
-        file.close();
-        int r = width*18/94;
-        for(int i=0; i<width; i++){
-            for(int j=0; j<height; j++){
-                if(i>=r_leftX-r && i<=r_leftX+r && j>=r_leftY-r && j<=r_leftY+r &&(i-r_leftX)*(i-r_leftX)+(j-r_leftY)*(j-r_leftY)<=r*r){
-                    qp_map[j*width*2+i] = static_cast<int8_t>(-19);
-                }
-                else{
-                    qp_map[j*width*2+i] = static_cast<int8_t>(20);
-                }
-            }
-        }
-        for(int i=0; i<width; i++){
-            for(int j=0; j<height; j++){
-                if(i>=r_rightX-r && i<=r_rightX+r && j>=r_rightY-r && j<=r_rightY+r &&(i-r_rightX)*(i-r_rightX)+(j-r_rightY)*(j-r_rightY)<=r*r){
-                    qp_map[j*width*2+i+width] = static_cast<int8_t>(-19);
-                }
-                else{
-                    qp_map[j*width*2+i+width] = static_cast<int8_t>(20);
-                }
-            }
-        }
-    }
+    qp_buf << targetTimestampNs << ", " << testQP << std::endl;
+
+    // if(changed || m_leftX != leftX){
+    //     m_leftX = leftX;
+    //     changed = true;
+    // }
+    // if(changed || m_leftY != leftY){
+    //     m_leftY = leftY;
+    //     changed = true;
+    // }
+    // if(changed || m_rightX != (rightX)){
+    //     m_rightX = rightX;
+    //     changed = true;
+    // }
+    // if(changed || m_rightY != rightY){
+    //     m_rightY = rightY;
+    //     changed = true;
+    // }
+    // // do a central wrap on the four value then ok
+    // if(changed){
+    //     qp_map = new int8_t[m_qpDeltaMapSize];
+    //     int r_leftX = (decompress_x(m_leftX)+15)/16;
+    //     int r_leftY = (decompress_y(m_leftY)+15)/16;
+    //     int r_rightX = (decompress_x(m_rightX)+15)/16-width;
+    //     int r_rightY = (decompress_y(m_rightY)+15)/16;
+    //     std::ofstream file("nvValue.csv", std::ios_base::app);
+    //     // Write the integers to the file, separated by commas
+    //     file << r_leftX << "," << r_leftY << "," << r_rightX << "," << r_rightY << std::endl;
+    //     // Close the file
+    //     file.close();
+    //     int r = width*18/94;
+    //     for(int i=0; i<width; i++){
+    //         for(int j=0; j<height; j++){
+    //             if(i>=r_leftX-r && i<=r_leftX+r && j>=r_leftY-r && j<=r_leftY+r &&(i-r_leftX)*(i-r_leftX)+(j-r_leftY)*(j-r_leftY)<=r*r){
+    //                 qp_map[j*width*2+i] = static_cast<int8_t>(-19);
+    //             }
+    //             else{
+    //                 qp_map[j*width*2+i] = static_cast<int8_t>(20);
+    //             }
+    //         }
+    //     }
+    //     for(int i=0; i<width; i++){
+    //         for(int j=0; j<height; j++){
+    //             if(i>=r_rightX-r && i<=r_rightX+r && j>=r_rightY-r && j<=r_rightY+r &&(i-r_rightX)*(i-r_rightX)+(j-r_rightY)*(j-r_rightY)<=r*r){
+    //                 qp_map[j*width*2+i+width] = static_cast<int8_t>(-19);
+    //             }
+    //             else{
+    //                 qp_map[j*width*2+i+width] = static_cast<int8_t>(20);
+    //             }
+    //         }
+    //     }
+    // }
 }
 
 NVENCSTATUS NvEncoder::DoEncode(NV_ENC_INPUT_PTR inputBuffer, NV_ENC_OUTPUT_PTR outputBuffer, NV_ENC_PIC_PARAMS *pPicParams)

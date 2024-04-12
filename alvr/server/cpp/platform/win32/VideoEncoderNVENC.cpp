@@ -116,7 +116,7 @@ void VideoEncoderNVENC::Transmit(ID3D11Texture2D *pTexture, uint64_t presentatio
 		reconfigureParams.reInitEncodeParams = initializeParams;
 		m_NvNecoder->Reconfigure(&reconfigureParams);
 	}
-	m_NvNecoder->GenQPDeltaMap(leftx,lefty,rightx,righty);
+	m_NvNecoder->GenQPDeltaMap(leftx,lefty,rightx,righty, targetTimestampNs);
 	
 	std::vector<std::vector<uint8_t>> vPacket;
 

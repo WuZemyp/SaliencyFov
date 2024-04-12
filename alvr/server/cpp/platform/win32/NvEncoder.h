@@ -22,6 +22,7 @@
 #include "NvCodecUtils.h"
 #include <cmath>
 #include "../../analyze_use/config.h"
+#include <random>
 
 /**
 * @brief Exception class for error reporting from NvEncodeAPI calls.
@@ -256,7 +257,7 @@ public:
     *  @brief This function returns the number of allocated buffers.
     */
     uint32_t GetEncoderBufferCount() const { return m_nEncoderBuffer; }
-    void GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY);
+    void GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint64_t targetTimestampNs);
 protected:
 
     /**
@@ -479,5 +480,8 @@ private:
     float edge_ratio_y = 5.0;
     float eye_size_ratio_y = 0.993421;
     std::fstream e_buf;
+    std::fstream qp_buf;
+    std::mt19937 generator;
+    std::uniform_int_distribution<int> dis;
 };
 
