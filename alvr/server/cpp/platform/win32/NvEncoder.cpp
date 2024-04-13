@@ -57,7 +57,7 @@ NvEncoder::NvEncoder(NV_ENC_DEVICE_TYPE eDeviceType, void *pDevice, uint32_t nWi
     e1 += "eframe.h264";
     e_buf.open(e1.c_str(), std::ios::out|std::ios::binary|std::ios::app);
     qp_buf.open((get_path_head()+"qp.csv").c_str(), std::ios::out);
-    qp_buf << "time, qp" << std::endl;
+    qp_buf << "target_ts(nanos), qp" << std::endl;
     std::random_device rd;
     generator.seed(rd());
     std::uniform_int_distribution<int> dis(1, 51);

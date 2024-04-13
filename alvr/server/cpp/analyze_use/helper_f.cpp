@@ -227,7 +227,8 @@ void CalculateEntropy(ID3D11Device* device, ID3D11DeviceContext* context, ID3D11
     //initialize
         initialized_CS = false;
         entropyFile.open(filename_s+"entropy.csv", std::ios_base::app);
-        entropyFile << "openFile" << std::endl;
+        // entropyFile << "openFile" << std::endl;
+        entropyFile << "target_ts(nanos), complexity, timeA, timeB, timeC, timeD, timeE, timeF, timeG, timeH, timeI, timeJ, timeK, timeL"
 
         if(ReInitialize_CS){
             entropyFile << "Reinitialized" << std::endl;
