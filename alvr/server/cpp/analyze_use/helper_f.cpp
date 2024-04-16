@@ -228,7 +228,7 @@ void CalculateEntropy(ID3D11Device* device, ID3D11DeviceContext* context, ID3D11
         initialized_CS = false;
         entropyFile.open(filename_s+"entropy.csv", std::ios_base::app);
         // entropyFile << "openFile" << std::endl;
-        entropyFile << "target_ts(nanos),complexity,timeA,timeB,timeC,timeD,timeE,timeF,timeG,timeH,timeI,timeJ,timeK,timeL"
+        entropyFile << "target_ts(nanos),complexity,timeA,timeB,timeC,timeD,timeE,timeF,timeG,timeH,timeI,timeJ,timeK,timeL" << std::endl;
 
         if(ReInitialize_CS){
             entropyFile << "Reinitialized" << std::endl;
@@ -407,7 +407,7 @@ void CalculateEntropy(ID3D11Device* device, ID3D11DeviceContext* context, ID3D11
     //     }
     // }
     auto t11 = std::chrono::high_resolution_clock::now();
-    entropyFile << EntropyData[0] << ", " 
+    entropyFile << m_targetTimestampNs << "," << EntropyData[0] << ", " 
     << "," << std::chrono::duration_cast<std::chrono::nanoseconds>(t1-start).count() 
     << "," << std::chrono::duration_cast<std::chrono::nanoseconds>(t2-t1).count() 
     << "," << std::chrono::duration_cast<std::chrono::nanoseconds>(t3-t2).count()

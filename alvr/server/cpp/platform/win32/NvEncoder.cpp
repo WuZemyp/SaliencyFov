@@ -60,7 +60,6 @@ NvEncoder::NvEncoder(NV_ENC_DEVICE_TYPE eDeviceType, void *pDevice, uint32_t nWi
     qp_buf << "target_ts(nanos),qp" << std::endl;
     std::random_device rd;
     generator.seed(rd());
-    std::uniform_int_distribution<int> dis(1, 51);
 }
 
 void NvEncoder::LoadNvEncApi()
@@ -604,7 +603,15 @@ void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint
     m_qpDeltaMapSize = m_numBlocks * sizeof(NV_ENC_EMPHASIS_MAP_LEVEL);
     delete[] qp_map;
     qp_map = new int8_t[m_qpDeltaMapSize];
+    std::normal_distribution<float> dis(5, 7);
     int testQP = dis(generator);
+    if(testQP>31){
+        testQP = 31;
+    }
+    else if (testQP<-19)
+    {
+        testQP = -19;
+    }
     for(int i=0; i<m_qpDeltaMapSize; i++){
         qp_map[i] = testQP;
     }
