@@ -127,7 +127,7 @@ public:
     *  data, which has been copied to an input buffer obtained from the
     *  GetNextInputFrame() function.
     */
-    virtual void EncodeFrame(std::vector<std::vector<uint8_t>> &vPacket, NV_ENC_PIC_PARAMS *pPicParams = nullptr);
+    virtual void EncodeFrame(std::vector<std::vector<uint8_t>> &vPacket, uint64_t targetTimestampNs, NV_ENC_PIC_PARAMS *pPicParams = nullptr);
 
     /**
     *  @brief  This function to flush the encoder queue.
@@ -365,7 +365,7 @@ private:
     *  This is called by DoEncode() function. If there is buffering enabled,
     *  this may return without any output data.
     */
-    void GetEncodedPacket(std::vector<NV_ENC_OUTPUT_PTR> &vOutputBuffer, std::vector<std::vector<uint8_t>> &vPacket, bool bOutputDelay);
+    void GetEncodedPacket(std::vector<NV_ENC_OUTPUT_PTR> &vOutputBuffer, std::vector<std::vector<uint8_t>> &vPacket, bool bOutputDelay, uint64_t targetTimestampNs);
 
     /**
     *  @brief This is a private function which is used to initialize the bitstream buffers.
@@ -479,8 +479,10 @@ private:
     float hiBoundC_y = 0.7198102;
     float edge_ratio_y = 5.0;
     float eye_size_ratio_y = 0.993421;
+    bool checkFrameType = true;
     std::fstream e_buf;
     std::fstream qp_buf;
+    std::fstream ft_buf;
     std::mt19937 generator;
     std::uniform_int_distribution<int> dis;
 };
