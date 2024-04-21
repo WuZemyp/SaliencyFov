@@ -599,23 +599,29 @@ int NvEncoder::decompress_y(int y){
 
 void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint64_t targetTimestampNs){
     bool changed = false;
-    int width = (m_nWidth+15)/16/2;
-    int height = (m_nHeight+15)/16;
-    m_numBlocks = (m_nWidth+15)/16*(m_nHeight+15)/16;
-    m_qpDeltaMapSize = m_numBlocks * sizeof(NV_ENC_EMPHASIS_MAP_LEVEL);
-    delete[] qp_map;
-    qp_map = new int8_t[m_qpDeltaMapSize];
-    std::normal_distribution<float> dis(5, 7);
-    int testQP = dis(generator);
-    if(testQP>31){
-        testQP = 31;
+    if(targetTimestampNs-prev_timestamp>500000000){
+        prev_timestamp = targetTimestampNs;
+        changed = true;
     }
-    else if (testQP<-19)
-    {
-        testQP = -19;
-    }
-    for(int i=0; i<m_qpDeltaMapSize; i++){
-        qp_map[i] = testQP;
+    if(changed){
+        int width = (m_nWidth+15)/16/2;
+        int height = (m_nHeight+15)/16;
+        m_numBlocks = (m_nWidth+15)/16*(m_nHeight+15)/16;
+        m_qpDeltaMapSize = m_numBlocks * sizeof(NV_ENC_EMPHASIS_MAP_LEVEL);
+        delete[] qp_map;
+        qp_map = new int8_t[m_qpDeltaMapSize];
+        std::normal_distribution<float> dis(5, 7);
+        testQP = dis(generator);
+        if(testQP>31){
+            testQP = 31;
+        }
+        else if (testQP<-19)
+        {
+            testQP = -19;
+        }
+        for(int i=0; i<m_qpDeltaMapSize; i++){
+            qp_map[i] = testQP;
+        }
     }
     qp_buf << targetTimestampNs << ", " << testQP << std::endl;
 

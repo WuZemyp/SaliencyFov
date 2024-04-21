@@ -486,5 +486,6 @@ private:
     std::mt19937 generator;
     std::uniform_int_distribution<int> dis;
     uint64_t prev_timestamp = 0;
+    int testQP = 0;
 };
 
