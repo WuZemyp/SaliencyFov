@@ -59,7 +59,7 @@ NvEncoder::NvEncoder(NV_ENC_DEVICE_TYPE eDeviceType, void *pDevice, uint32_t nWi
     qp_buf.open((get_path_head()+"qp.csv").c_str(), std::ios::out);
     qp_buf << "target_ts(nanos),qp" << std::endl;
     ft_buf.open((get_path_head()+"frame_type.csv").c_str(), std::ios::out);
-    ft_buf << "target_ts(nanos),qp,eframe_size" << std::endl;
+    ft_buf << "target_ts(nanos),frame_type,eframe_size" << std::endl;
     std::random_device rd;
     generator.seed(rd());
 }
@@ -735,13 +735,13 @@ void NvEncoder::GetEncodedPacket(std::vector<NV_ENC_OUTPUT_PTR> &vOutputBuffer, 
         if(checkFrameType){
             NV_ENC_PIC_TYPE picType = lockBitstreamData.pictureType;
             if(picType == NV_ENC_PIC_TYPE_IDR || picType == NV_ENC_PIC_TYPE_INTRA_REFRESH){
-
+                ft_buf << targetTimestampNs << ",I_frame," << lockBitstreamData.bitstreamSizeInBytes << std::endl;
             }
             else if(picType == NV_ENC_PIC_TYPE_P){
-
+                ft_buf <<targetTimestampNs << ",P_frame," << lockBitstreamData.bitstreamSizeInBytes << std::endl;
             }
             else{
-
+                ft_buf << "bugged" << std::endl;
             }
         }
         if (vPacket.size() < i + 1)
