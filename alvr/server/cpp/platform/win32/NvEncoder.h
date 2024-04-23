@@ -484,8 +484,10 @@ private:
     std::fstream qp_buf;
     std::fstream ft_buf;
     std::mt19937 generator;
-    std::uniform_int_distribution<int> dis;
     uint64_t prev_timestamp = 0;
-    int testQP = 0;
+    int QP1 = 0;
+    int QP2 = 0;
+    int r1 = 0;
+    int r2 = 0;
 };
 

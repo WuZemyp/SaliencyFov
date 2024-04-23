@@ -597,12 +597,26 @@ int NvEncoder::decompress_y(int y){
     return int(compressed_y*eye_size_ratio_y*1216);
 }
 
+int QP_clip(int QP){
+    if(QP>31){
+        return 31;
+    }
+    else if (QP< -19)
+    {
+        return -19;
+    }
+    else{
+        return QP;
+    }
+}
+
 void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint64_t targetTimestampNs){
     bool changed = false;
-    if(targetTimestampNs-prev_timestamp>500000000){
-        prev_timestamp = targetTimestampNs;
-        changed = true;
-    }
+    // if(targetTimestampNs-prev_timestamp>500000000){
+    //     prev_timestamp = targetTimestampNs;
+    //     changed = true;
+    // }
+    changed = true;
     if(changed){
         int width = (m_nWidth+15)/16/2;
         int height = (m_nHeight+15)/16;
@@ -610,20 +624,39 @@ void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint
         m_qpDeltaMapSize = m_numBlocks * sizeof(NV_ENC_EMPHASIS_MAP_LEVEL);
         delete[] qp_map;
         qp_map = new int8_t[m_qpDeltaMapSize];
-        std::normal_distribution<float> dis(5, 7);
-        testQP = dis(generator);
-        if(testQP>31){
-            testQP = 31;
+        std::normal_distribution<float> QP_dis(5, 8);
+        QP1 = QP_clip(int(QP_dis(generator)));
+        QP2 = QP_clip(int(QP_dis(generator)));
+        std::uniform_int_distribution<int> rad_dis(0, 94);
+        r1 = rad_dis(generator);
+        r2 = 94 -r1;
+        int radius1 = width*r1/94;
+        rightX -= width;
+        QP1 = 0;
+        QP2 = 30;
+        for(int i=0; i<width; i++){
+            for(int j=0; j<height; j++){
+                if(i>=leftX-radius1 && i <=leftX+radius1 && j>=leftY-radius1 && j<=leftY+radius1 && (i-leftX)*(i-leftX)+(j-leftY)*(j-leftY)<=radius1*radius1){
+                    qp_map[j*width*2+i] = static_cast<int8_t>(QP1);
+                }
+                else{
+                    qp_map[j*width*2+i] = static_cast<int8_t>(QP2);
+                }
+                if(i>=rightX-radius1 && i<=rightX+radius1 && j>=rightY-radius1 && j<=rightY+radius1 && (i-rightX)*(i-rightX)+(j-rightY)*(j-rightY)<=radius1*radius1){
+                    qp_map[j*width*2+i+width] = static_cast<int8_t>(QP1);
+                }
+                else{
+                    qp_map[j*width*2+i+width] = static_cast<int8_t>(QP2);
+                }
+            }
         }
-        else if (testQP<-19)
-        {
-            testQP = -19;
-        }
-        for(int i=0; i<m_qpDeltaMapSize; i++){
-            qp_map[i] = testQP;
-        }
+        
     }
-    qp_buf << targetTimestampNs << ", " << testQP << std::endl;
+    qp_buf << targetTimestampNs 
+    << ", " << QP1 
+    << ", " << QP2 
+    << ", " << r1
+    << ", " << r2 << std::endl;
 
     // if(changed || m_leftX != leftX){
     //     m_leftX = leftX;
