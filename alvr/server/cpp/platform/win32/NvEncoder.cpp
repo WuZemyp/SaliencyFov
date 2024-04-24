@@ -57,7 +57,7 @@ NvEncoder::NvEncoder(NV_ENC_DEVICE_TYPE eDeviceType, void *pDevice, uint32_t nWi
     e1 += "eframe.h264";
     e_buf.open(e1.c_str(), std::ios::out|std::ios::binary|std::ios::app);
     qp_buf.open((get_path_head()+"qp.csv").c_str(), std::ios::out);
-    qp_buf << "target_ts(nanos),qp" << std::endl;
+    qp_buf << "target_ts(nanos),qp1,qp2,r1,r2" << std::endl;
     ft_buf.open((get_path_head()+"frame_type.csv").c_str(), std::ios::out);
     ft_buf << "target_ts(nanos),frame_type,eframe_size" << std::endl;
     std::random_device rd;
@@ -635,12 +635,6 @@ void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint
         QP2 = QP_clip(int(QP_dis(generator)));
         std::uniform_int_distribution<int> rad_dis(0, 94);
         r1 = rad_dis(generator);
-        // if(r1<18){
-        //     r1 = 50;
-        // }
-        // else{
-        //     r1 = 10;
-        // }
         r2 = 94 -r1;
         int radius1 = width*r1/94;
         // QP1 = -10;
