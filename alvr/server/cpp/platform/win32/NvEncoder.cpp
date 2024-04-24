@@ -634,17 +634,17 @@ void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint
         QP1 = QP_clip(int(QP_dis(generator)));
         QP2 = QP_clip(int(QP_dis(generator)));
         std::uniform_int_distribution<int> rad_dis(0, 94);
-        // r1 = rad_dis(generator);
-        if(r1<18){
-            r1 = 50;
-        }
-        else{
-            r1 = 10;
-        }
+        r1 = rad_dis(generator);
+        // if(r1<18){
+        //     r1 = 50;
+        // }
+        // else{
+        //     r1 = 10;
+        // }
         r2 = 94 -r1;
         int radius1 = width*r1/94;
-        QP1 = -10;
-        QP2 = 30;
+        // QP1 = -10;
+        // QP2 = 30;
         for(int i=0; i<width; i++){
             for(int j=0; j<height; j++){
                 if(i>=r_leftX-radius1 && i <=r_leftX+radius1 && j>=r_leftY-radius1 && j<=r_leftY+radius1 && (i-r_leftX)*(i-r_leftX)+(j-r_leftY)*(j-r_leftY)<=radius1*radius1){
