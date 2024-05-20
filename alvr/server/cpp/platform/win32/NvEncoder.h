@@ -489,5 +489,6 @@ private:
     int QP2 = 0;
     int r1 = 0;
     int r2 = 0;
+    int frameCounter = 0;
 };
 

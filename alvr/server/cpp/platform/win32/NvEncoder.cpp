@@ -616,7 +616,11 @@ void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint
     //     prev_timestamp = targetTimestampNs;
     //     changed = true;
     // }
-    changed = true;
+    frameCounter ++;
+    if(frameCounter == 3){
+        changed = true;
+        frameCounter = 0;
+    }
     if(changed){
         int width = (m_nWidth+15)/16/2;
         int height = (m_nHeight+15)/16;
