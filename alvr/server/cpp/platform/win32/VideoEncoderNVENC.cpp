@@ -95,10 +95,10 @@ void VideoEncoderNVENC::Transmit(ID3D11Texture2D *pTexture, uint64_t presentatio
 	int lefty=int(2336-GetEyeGazeLocationLeftY());
 	int rightx=int(GetEyeGazeLocationRightX());
 	int righty=int(2336-GetEyeGazeLocationRightY());
-	leftx=1072;//1151,1262,3264,1262
-	lefty=1140;
-	rightx=3216;
-	righty=1140;
+	leftx=1072;
+	lefty=1168;
+	rightx=1072+2144;
+	righty=1168;
 	std::ofstream file("passing.csv", std::ios_base::app);
     // Write the integers to the file, separated by commas
     file << leftxfromrust << "," << leftyfromrust << "," << rightxfromrust << "," << rightyfromrust << std::endl;

@@ -635,11 +635,14 @@ void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint
         delete[] qp_map;
         qp_map = new int8_t[m_qpDeltaMapSize];
         std::normal_distribution<float> QP_dis(5, 8);
-        QP1 = QP_clip(int(QP_dis(generator)));
-        QP2 = QP_clip(int(QP_dis(generator)));
+        // QP1 = QP_clip(int(QP_dis(generator)));
+        // QP2 = QP_clip(int(QP_dis(generator)));
+        QP1 = 5;
+        QP2 = 25;
         std::uniform_int_distribution<int> rad_dis(0, 94);
-        r1 = rad_dis(generator);
-        r2 = 94 -r1;
+        // r1 = rad_dis(generator);
+        r1 = 9;
+        r2 = 47 -r1;
         int radius1 = width*r1/94;
         // QP1 = -10;
         // QP2 = 30;
