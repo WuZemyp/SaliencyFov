@@ -621,16 +621,20 @@ void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint
         changed = true;
         frameCounter = 0;
     }
+    int r_leftX;
+    int r_leftY;
+    int r_rightX;
+    int r_rightY;
     if(changed){
         int width = (m_nWidth+15)/16/2;
         int height = (m_nHeight+15)/16;
         m_numBlocks = (m_nWidth+15)/16*(m_nHeight+15)/16;
         m_qpDeltaMapSize = m_numBlocks * sizeof(NV_ENC_EMPHASIS_MAP_LEVEL);
 
-        int r_leftX = (decompress_x(leftX)+15)/16;
-        int r_leftY = (decompress_y(leftY)+15)/16;
-        int r_rightX = (decompress_x(rightX)+15)/16-width;
-        int r_rightY = (decompress_y(rightY)+15)/16;
+        r_leftX = (decompress_x(leftX)+15)/16;
+        r_leftY = (decompress_y(leftY)+15)/16;
+        r_rightX = (decompress_x(rightX)+15)/16-width;
+        r_rightY = (decompress_y(rightY)+15)/16;
 
         delete[] qp_map;
         qp_map = new int8_t[m_qpDeltaMapSize];
@@ -665,8 +669,8 @@ void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint
         
     }
     qp_buf << targetTimestampNs 
-    << ", " << QP1 
-    << ", " << QP2 
+    << ", " << QP1 << " v " << r_leftX << " v " << r_leftY << " v " << r_rightX << " v " << r_rightY
+    << ", " << QP2
     << ", " << r1
     << ", " << r2 << std::endl;
 
