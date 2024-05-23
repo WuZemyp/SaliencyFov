@@ -770,6 +770,7 @@ fn connection_pipeline(
         let tracking_manager = Arc::clone(&tracking_manager);
         let hand_gesture_manager = Arc::clone(&hand_gesture_manager);
         create_csv_file("eyegaze.csv");
+        create_csv_file_tracking("tracking.csv");
         let mut gestures_button_mapping_manager =
             settings.headset.controllers.as_option().map(|config| {
                 ButtonMappingManager::new_automatic(
@@ -915,7 +916,7 @@ fn connection_pipeline(
                         
                     }
 
-                    sink.send_tracking(face_data);
+                    sink.send_tracking(face_data);//here check how many times send for one target timestamp
                 }
 
                 let ffi_motions = motions
@@ -973,6 +974,9 @@ fn connection_pipeline(
 
                 if let Some(stats) = &mut *STATISTICS_MANAGER.lock() {
                     stats.report_tracking_received(tracking.target_timestamp);
+
+                    //let tracking_data=[tracking.target_timestamp.as_nanos().to_string()];
+                    //write_tracking_to_csv("tracking.csv", tracking_data);
 
                     unsafe {
                         crate::SetTracking(
@@ -1556,6 +1560,32 @@ fn create_csv_file(filename: &str) -> Result<(), Box<dyn Error>> {
         "right_view_fov_right",
         "yaw",
         "pitch"
+    ])?;
+
+    Ok(())
+}
+fn create_csv_file_tracking(filename: &str) -> Result<(), Box<dyn Error>> {
+    let mut writer = WriterBuilder::new().has_headers(false).from_writer(File::create(filename)?);
+
+    // Write the column names in the first row
+    writer.write_record(&[
+        "target_ts",
+        "tracking_received_time",
+        
+    ])?;
+
+    Ok(())
+}
+fn write_tracking_to_csv(filename: &str, latency_values: [String; 1]) -> Result<(), Box<dyn Error>> {
+
+    let mut file = OpenOptions::new().write(true).append(true).open(filename)?;
+    let mut writer = Writer::from_writer(file);
+
+    // Write the latency strings in the next row
+    writer.write_record(&[
+        &latency_values[0],
+        //&latency_values[1],
+       
     ])?;
 
     Ok(())

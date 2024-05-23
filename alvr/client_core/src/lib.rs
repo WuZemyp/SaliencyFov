@@ -195,7 +195,7 @@ pub fn send_tracking(tracking: Tracking) {
         sender.send_header(&tracking).ok();
 
         if let Some(stats) = &mut *STATISTICS_MANAGER.lock() {
-            stats.report_input_acquired(tracking.target_timestamp);
+            stats.report_input_acquired(tracking.target_timestamp);//here check same timestamp tracking send how many times or back to streampipeline at the target ts getting point
         }
     }
 }

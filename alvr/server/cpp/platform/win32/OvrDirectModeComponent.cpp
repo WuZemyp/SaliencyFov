@@ -186,7 +186,8 @@ void OvrDirectModeComponent::Present(vr::SharedTextureHandle_t syncTexture)
 	m_submitLayer = 0;
 
 	if (m_prevTargetTimestampNs == m_targetTimestampNs) {
-		Debug("Discard duplicated frame. FrameIndex=%llu (Ignoring)\n", m_targetTimestampNs);
+		Debug("Discard duplicated frame. FrameIndex=%llu (Ignoring)\n", m_targetTimestampNs);//key point
+		Info("Discard duplicated frame. FrameIndex=%llu (Ignoring)\n", m_targetTimestampNs);
 		//return;
 	}
 
