@@ -414,8 +414,10 @@ private:
     */
     virtual void ReleaseInputBuffers() = 0;
 
-    int decompress_x(int x);
-    int decompress_y(int y);
+    // int decompress_x(int x);
+    // int decompress_y(int y);
+    int compress_x(int x);
+    int compress_y(int y);
 
 protected:
     bool m_bMotionEstimationOnly = false;
@@ -461,13 +463,13 @@ private:
     int m_leftY=-1;
     int m_rightX=-1;
     int m_rightY=-1;
-    float c0_x = 0.29729748;
-    float c1_x = 0.31216234;
-    float c2_x = 2.2162151;
-    float lo_bound_x = 0.41621646;
-    float hi_bound_x = 0.82162154;
-    float loBoundC_x = 0.18780509;
-    float hiBoundC_x = 0.9195121;
+    float c0_x = 0.2761195;
+    float c1_x = 0.2910448;
+    float c2_x = 2.343283;
+    float lo_bound_x = 0.38805974;
+    float hi_bound_x = 0.83582073;
+    float loBoundC_x = 0.16560516;
+    float hiBoundC_x = 0.92993623;
     float edge_ratio_x = 4.0;
     float eye_size_ratio_x = 0.98125;
     float c0_y = 0.301798;
