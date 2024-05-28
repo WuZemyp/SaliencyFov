@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <memory>
+#include <fstream>
 
 #include "utils.h"
 
@@ -151,6 +152,8 @@ void FFR::Initialize(FoveationVars fv) {
                                             fv.centerShiftY,
                                             fv.edgeRatioX,
                                             fv.edgeRatioY);
+    std::ofstream testOut("/sdcard/Android/data/alvr.client/files/fovVar.txt", std::ios::app);
+    testOut << ffrCommonShaderStr << std::endl;
 
     mExpandedTexture.reset(new Texture(false, 0, false, fv.targetEyeWidth * 2, fv.targetEyeHeight));
     mExpandedTextureState = make_unique<RenderState>(mExpandedTexture.get());

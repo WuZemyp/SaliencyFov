@@ -141,6 +141,9 @@ void OvrDirectModeComponent::SubmitLayer(const SubmitLayerPerEye_t(&perEye)[2])
 		// We search for history of TrackingInfo and find the TrackingInfo which have nearest matrix value.
 
 		auto pose = m_poseHistory->GetBestPoseMatch(*pPose);
+		if(pose->targetTimestampNs==m_targetTimestampNs){
+			Info("duplicate due to no new update at the end of the buffer");
+		}
 		if (pose) {
 			// found the frameIndex
 			m_prevTargetTimestampNs = m_targetTimestampNs;
@@ -165,6 +168,9 @@ void OvrDirectModeComponent::SubmitLayer(const SubmitLayerPerEye_t(&perEye)[2])
 	else {
 		Warn("Too many layers submitted!\n");
 	}
+	// Info("submitted layer target timestamp=%llu \n", m_targetTimestampNs);
+	// Info("submitted layer no=%llu \n", m_submitLayer);
+
 
 	//CopyTexture();
 
@@ -186,7 +192,8 @@ void OvrDirectModeComponent::Present(vr::SharedTextureHandle_t syncTexture)
 	m_submitLayer = 0;
 
 	if (m_prevTargetTimestampNs == m_targetTimestampNs) {
-		Debug("Discard duplicated frame. FrameIndex=%llu (Ignoring)\n", m_targetTimestampNs);
+		Debug("Discard duplicated frame. FrameIndex=%llu (Ignoring)\n", m_targetTimestampNs);//key point
+		Info("Discard duplicated frame. FrameIndex=%llu (Ignoring)\n", m_targetTimestampNs);
 		//return;
 	}
 

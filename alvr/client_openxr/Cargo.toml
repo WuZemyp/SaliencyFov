@@ -70,6 +70,8 @@ name = "android.permission.WAKE_LOCK"
 name = "org.khronos.openxr.permission.OPENXR"
 [[package.metadata.android.uses_permission]]
 name = "org.khronos.openxr.permission.OPENXR_SYSTEM"
+[[package.metadata.android.uses_permission]]
+name = "android.permission.WRITE_EXTERNAL_STORAGE"
 
 [[package.metadata.android.queries.provider]]
 name = "org.khronos.openxr"

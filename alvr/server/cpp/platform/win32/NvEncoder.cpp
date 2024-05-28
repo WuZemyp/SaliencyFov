@@ -557,44 +557,104 @@ float Eye2Texturex(float eye_x, bool is_right){
   return eye_x * 0.5 + float(is_right) * (1.0 - eye_x);
 }
 
-int NvEncoder::decompress_x(int x){
+// int NvEncoder::decompress_x(int x){
+//     float f_x = float(x)/(2144*2);
+//     bool is_right = (f_x>0.5);
+//     float eye_x = Texture2Eyex(f_x, is_right);
+//     bool under_bound = (eye_x<lo_bound_x);
+//     bool over_bound = (eye_x>=hi_bound_x);
+//     bool in_bound = !(under_bound||over_bound);
+//     // std::cout << under_bound << in_bound << over_bound << std::endl;
+//     float compressed_x = 0.0;
+//     if(under_bound){
+//         compressed_x = (-(c1_x+c2_x*loBoundC_x)/loBoundC_x + sqrt(((c1_x+c2_x*loBoundC_x)/loBoundC_x)*((c1_x+c2_x*loBoundC_x)/loBoundC_x)+4. *c2_x*(1.-edge_ratio_x)/(edge_ratio_x*loBoundC_x)*eye_x))/(2. * c2_x * (1. - edge_ratio_x))*(edge_ratio_x * loBoundC_x);
+//     }
+//     else if(in_bound){
+//         compressed_x = (eye_x-c1_x) * edge_ratio_x / c2_x;
+//     }
+//     else{
+//         compressed_x = (-(c2_x - edge_ratio_x * c1_x - 2. * edge_ratio_x *c2_x + c2_x*edge_ratio_x*(1.-hiBoundC_x)+edge_ratio_x)/(edge_ratio_x*(1. - hiBoundC_x))+sqrt(((c2_x-edge_ratio_x * c1_x -2.* edge_ratio_x *c2_x + c2_x * edge_ratio_x *(1. - hiBoundC_x)+edge_ratio_x)/(edge_ratio_x * (1.-hiBoundC_x)))*((c2_x - edge_ratio_x*c1_x - 2. *edge_ratio_x*c2_x + c2_x* edge_ratio_x * (1.- hiBoundC_x)+edge_ratio_x)/(edge_ratio_x * (1. - hiBoundC_x))) - 4. *((c2_x* edge_ratio_x -c2_x)*(c1_x -hiBoundC_x+hiBoundC_x*c2_x)/(edge_ratio_x*(1.-hiBoundC_x)*(1. - hiBoundC_x)) - eye_x* (c2_x *edge_ratio_x - c2_x)/(edge_ratio_x * (1. - hiBoundC_x))))) /(2. * c2_x * (edge_ratio_x - 1.))*(edge_ratio_x * (1.-hiBoundC_x));
+//     }
+//     // std::cout << compressed_x << std::endl;
+//     return int(Eye2Texturex(compressed_x*eye_size_ratio_x, is_right)*1280*2);
+// }
+
+int NvEncoder::compress_x(int x){
     float f_x = float(x)/(2144*2);
     bool is_right = (f_x>0.5);
-    float eye_x = Texture2Eyex(f_x, is_right);
-    bool under_bound = (eye_x<lo_bound_x);
-    bool over_bound = (eye_x>=hi_bound_x);
-    bool in_bound = !(under_bound||over_bound);
-    // std::cout << under_bound << in_bound << over_bound << std::endl;
+    float eye_x = Texture2Eyex(f_x, is_right) / eye_size_ratio_x;
+    bool under_bound = (eye_x < loBoundC_x);
+    bool over_bound = (eye_x>=hiBoundC_x);
+    // bool in_bound = !(under_bound||over_bound);
+
+    float center_x = eye_x * c2_x / edge_ratio_x +c1_x;
+
+    float d2_x = eye_x *c2_x;
+    float d3_x = (eye_x - 1.)*c2_x + 1.;
+    float g1_x = eye_x/loBoundC_x;
+    float g2_x = (1.-eye_x)/(1. - hiBoundC_x);
+
+    float leftEdge_x = g1_x*center_x+(1. - g1_x) *d2_x;
+    float rightEdge_x = g2_x*center_x+(1. - g2_x) * d3_x;
     float compressed_x = 0.0;
     if(under_bound){
-        compressed_x = (-(c1_x+c2_x*loBoundC_x)/loBoundC_x + sqrt(((c1_x+c2_x*loBoundC_x)/loBoundC_x)*((c1_x+c2_x*loBoundC_x)/loBoundC_x)+4. *c2_x*(1.-edge_ratio_x)/(edge_ratio_x*loBoundC_x)*eye_x))/(2. * c2_x * (1. - edge_ratio_x))*(edge_ratio_x * loBoundC_x);
+        compressed_x = leftEdge_x;
     }
-    else if(in_bound){
-        compressed_x = (eye_x-c1_x) * edge_ratio_x / c2_x;
+    else if (over_bound)
+    {
+        compressed_x = rightEdge_x;
     }
     else{
-        compressed_x = (-(c2_x - edge_ratio_x * c1_x - 2. * edge_ratio_x *c2_x + c2_x*edge_ratio_x*(1.-hiBoundC_x)+edge_ratio_x)/(edge_ratio_x*(1. - hiBoundC_x))+sqrt(((c2_x-edge_ratio_x * c1_x -2.* edge_ratio_x *c2_x + c2_x * edge_ratio_x *(1. - hiBoundC_x)+edge_ratio_x)/(edge_ratio_x * (1.-hiBoundC_x)))*((c2_x - edge_ratio_x*c1_x - 2. *edge_ratio_x*c2_x + c2_x* edge_ratio_x * (1.- hiBoundC_x)+edge_ratio_x)/(edge_ratio_x * (1. - hiBoundC_x))) - 4. *((c2_x* edge_ratio_x -c2_x)*(c1_x -hiBoundC_x+hiBoundC_x*c2_x)/(edge_ratio_x*(1.-hiBoundC_x)*(1. - hiBoundC_x)) - eye_x* (c2_x *edge_ratio_x - c2_x)/(edge_ratio_x * (1. - hiBoundC_x))))) /(2. * c2_x * (edge_ratio_x - 1.))*(edge_ratio_x * (1.-hiBoundC_x));
+        compressed_x = center_x;
     }
-    // std::cout << compressed_x << std::endl;
-    return int(Eye2Texturex(compressed_x*eye_size_ratio_x, is_right)*1280*2);
+    return int(Eye2Texturex(compressed_x, is_right)*1280*2);
 }
 
-int NvEncoder::decompress_y(int y){
-    float f_y = float(y)/2336;
-    bool under_bound = (f_y<lo_bound_y);
-    bool over_bound = (f_y>=hi_bound_y);
-    bool in_bound = !(under_bound||over_bound);
+// int NvEncoder::decompress_y(int y){
+//     float f_y = float(y)/2336;
+//     bool under_bound = (f_y<lo_bound_y);
+//     bool over_bound = (f_y>=hi_bound_y);
+//     bool in_bound = !(under_bound||over_bound);
+//     float compressed_y = 0.0;
+//     if(under_bound){
+//         compressed_y = (-(c1_y+c2_y*loBoundC_y)/loBoundC_y + sqrt(((c1_y+c2_y*loBoundC_y)/loBoundC_y)*((c1_y+c2_y*loBoundC_y)/loBoundC_y)+4. *c2_y*(1.-edge_ratio_y)/(edge_ratio_y*loBoundC_y)*f_y))/(2. * c2_y * (1. - edge_ratio_y))*(edge_ratio_y * loBoundC_y);
+//     }
+//     else if(in_bound){
+//         compressed_y = (f_y-c1_y) * edge_ratio_y / c2_y;
+//     }
+//     else{
+//         compressed_y = (-(c2_y - edge_ratio_y * c1_y - 2. * edge_ratio_y *c2_y + c2_y*edge_ratio_y*(1.-hiBoundC_y)+edge_ratio_y)/(edge_ratio_y*(1. - hiBoundC_y))+sqrt(((c2_y-edge_ratio_y * c1_y -2.* edge_ratio_y *c2_y + c2_y * edge_ratio_y *(1. - hiBoundC_y)+edge_ratio_y)/(edge_ratio_y * (1.-hiBoundC_y)))*((c2_y - edge_ratio_y*c1_y - 2. *edge_ratio_y*c2_y + c2_y* edge_ratio_y * (1.- hiBoundC_y)+edge_ratio_y)/(edge_ratio_y * (1. - hiBoundC_y))) - 4. *((c2_y* edge_ratio_y -c2_y)*(c1_y -hiBoundC_y+hiBoundC_y*c2_y)/(edge_ratio_y*(1.-hiBoundC_y)*(1. - hiBoundC_y)) - f_y* (c2_y *edge_ratio_y - c2_y)/(edge_ratio_y * (1. - hiBoundC_y))))) /(2. * c2_y * (edge_ratio_y - 1.))*(edge_ratio_y * (1.-hiBoundC_y));
+//     }
+//     return int(compressed_y*eye_size_ratio_y*1216);
+// }
+
+int NvEncoder::compress_y(int y){
+    float f_y = float(y)/2336/eye_size_ratio_y;
+    bool under_bound = (f_y<loBoundC_y);
+    bool over_bound = (f_y>=hiBoundC_y);
+    // bool in_bound = !(under_bound||over_bound);
+    float center_y = f_y * c2_y / edge_ratio_y +c1_y;
+
+    float d2_y = f_y * c2_y;
+    float d3_y = (f_y-1.)*c2_y+1.;
+    float g1_y = f_y/loBoundC_y;
+    float g2_y = (1. - f_y)/(1. - hiBoundC_y);
+    
+    float leftEdge_y =  g1_y*center_y + (1. - g1_y) *d2_y;
+    float rightEdge_y = g2_y*center_y + (1. - g2_y) *d3_y;
+
     float compressed_y = 0.0;
     if(under_bound){
-        compressed_y = (-(c1_y+c2_y*loBoundC_y)/loBoundC_y + sqrt(((c1_y+c2_y*loBoundC_y)/loBoundC_y)*((c1_y+c2_y*loBoundC_y)/loBoundC_y)+4. *c2_y*(1.-edge_ratio_y)/(edge_ratio_y*loBoundC_y)*f_y))/(2. * c2_y * (1. - edge_ratio_y))*(edge_ratio_y * loBoundC_y);
+        compressed_y =leftEdge_y;
     }
-    else if(in_bound){
-        compressed_y = (f_y-c1_y) * edge_ratio_y / c2_y;
+    else if (over_bound)
+    {
+        compressed_y = rightEdge_y;
     }
     else{
-        compressed_y = (-(c2_y - edge_ratio_y * c1_y - 2. * edge_ratio_y *c2_y + c2_y*edge_ratio_y*(1.-hiBoundC_y)+edge_ratio_y)/(edge_ratio_y*(1. - hiBoundC_y))+sqrt(((c2_y-edge_ratio_y * c1_y -2.* edge_ratio_y *c2_y + c2_y * edge_ratio_y *(1. - hiBoundC_y)+edge_ratio_y)/(edge_ratio_y * (1.-hiBoundC_y)))*((c2_y - edge_ratio_y*c1_y - 2. *edge_ratio_y*c2_y + c2_y* edge_ratio_y * (1.- hiBoundC_y)+edge_ratio_y)/(edge_ratio_y * (1. - hiBoundC_y))) - 4. *((c2_y* edge_ratio_y -c2_y)*(c1_y -hiBoundC_y+hiBoundC_y*c2_y)/(edge_ratio_y*(1.-hiBoundC_y)*(1. - hiBoundC_y)) - f_y* (c2_y *edge_ratio_y - c2_y)/(edge_ratio_y * (1. - hiBoundC_y))))) /(2. * c2_y * (edge_ratio_y - 1.))*(edge_ratio_y * (1.-hiBoundC_y));
+        compressed_y = center_y;
     }
-    return int(compressed_y*eye_size_ratio_y*1216);
+    return int(compressed_y*1216);
 }
 
 int QP_clip(int QP){
@@ -621,27 +681,48 @@ void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint
         changed = true;
         frameCounter = 0;
     }
+    int r_leftX;
+    int r_leftY;
+    int r_rightX;
+    int r_rightY;
     if(changed){
         int width = (m_nWidth+15)/16/2;
         int height = (m_nHeight+15)/16;
         m_numBlocks = (m_nWidth+15)/16*(m_nHeight+15)/16;
         m_qpDeltaMapSize = m_numBlocks * sizeof(NV_ENC_EMPHASIS_MAP_LEVEL);
 
-        int r_leftX = (decompress_x(leftX)+15)/16;
-        int r_leftY = (decompress_y(leftY)+15)/16;
-        int r_rightX = (decompress_x(rightX)+15)/16-width;
-        int r_rightY = (decompress_y(rightY)+15)/16;
+        r_leftX = (compress_x(leftX)+15)/16;
+        r_leftY = (compress_y(leftY)+15)/16;
+        r_rightX = (compress_x(rightX)+15)/16-width;
+        r_rightY = (compress_y(rightY)+15)/16;
 
         delete[] qp_map;
         qp_map = new int8_t[m_qpDeltaMapSize];
-        std::normal_distribution<float> QP_dis(5, 8);
-        // QP1 = QP_clip(int(QP_dis(generator)));
-        // QP2 = QP_clip(int(QP_dis(generator)));
-        QP1 = 5;
-        QP2 = 25;
-        std::uniform_int_distribution<int> rad_dis(0, 94);
+        std::normal_distribution<float> QP_dis(5, 80);
+        std::uniform_int_distribution<int> int_dis(0, 3);
+        int direct_value1 = QP_dis(generator);
+        int direct_value2 = QP_dis(generator);
+        int gap1 = int_dis(generator);
+        int gap2 = int_dis(generator);
+
+        if(QP1 <= direct_value1){
+            QP1 += gap1;
+        }
+        else{
+            QP1 -= gap1;
+        }
+        if(QP2 <= direct_value2){
+            QP2 += gap2;
+        }
+        else{
+            QP2 -= gap2;
+        }
+        QP1 = QP_clip(QP1);
+        QP2 = QP_clip(QP2);
+
+        // std::uniform_int_distribution<int> rad_dis(0, 47);
         // r1 = rad_dis(generator);
-        r1 = 9;
+        r1 = 18;
         r2 = 47 -r1;
         int radius1 = width*r1/94;
         // QP1 = -10;
@@ -666,7 +747,7 @@ void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint
     }
     qp_buf << targetTimestampNs 
     << ", " << QP1 
-    << ", " << QP2 
+    << ", " << QP2
     << ", " << r1
     << ", " << r2 << std::endl;
 
