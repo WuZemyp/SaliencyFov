@@ -48,7 +48,7 @@ void PoseHistory::OnPoseUpdated(uint64_t targetTimestampNs, FfiDeviceMotion moti
 std::optional<PoseHistory::TrackingHistoryFrame> PoseHistory::GetBestPoseMatch(const vr::HmdMatrix34_t &pose) const
 {
 	std::unique_lock<std::mutex> lock(m_mutex);
-	return m_poseBuffer.back();
+	// return m_poseBuffer.back();
 	if (m_transformUpdating && !m_poseBuffer.empty()) {
 		return m_poseBuffer.back();
 	}

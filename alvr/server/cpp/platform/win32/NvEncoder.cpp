@@ -677,9 +677,9 @@ void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint
     //     changed = true;
     // }
     frameCounter ++;
-    if(frameCounter == 3){
+    if(frameCounter%3 == 1){
         changed = true;
-        frameCounter = 0;
+        // frameCounter = 0;
     }
     int r_leftX;
     int r_leftY;
