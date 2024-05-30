@@ -456,6 +456,7 @@ private:
     uint32_t m_nMaxEncodeWidth = 0;
     uint32_t m_nMaxEncodeHeight = 0;
     void* m_hModule = nullptr;
+    // New added var
     int8_t* qp_map = nullptr;
     int m_numBlocks = 0;
     int m_qpDeltaMapSize = 0;
@@ -492,5 +493,7 @@ private:
     int r1 = 0;
     int r2 = 0;
     int frameCounter = 0;
+    int map_width = 0;
+    int map_height = 0;
 };
 

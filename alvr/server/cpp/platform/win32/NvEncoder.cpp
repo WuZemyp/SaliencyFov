@@ -57,7 +57,7 @@ NvEncoder::NvEncoder(NV_ENC_DEVICE_TYPE eDeviceType, void *pDevice, uint32_t nWi
     e1 += "eframe.h264";
     e_buf.open(e1.c_str(), std::ios::out|std::ios::binary|std::ios::app);
     qp_buf.open((get_path_head()+"qp.csv").c_str(), std::ios::out);
-    qp_buf << "target_ts(nanos),qp1,qp2,r1,r2" << std::endl;
+    qp_buf << "target_ts(nanos),qp1,qp2,r1,r2,leftX,leftY,rightX,rightY,width,height" << std::endl;
     ft_buf.open((get_path_head()+"frame_type.csv").c_str(), std::ios::out);
     ft_buf << "target_ts(nanos),frame_type,eframe_size" << std::endl;
     std::random_device rd;
@@ -402,6 +402,7 @@ void NvEncoder::DestroyEncoder()
     {
         return;
     }
+    delete[] qp_map;
 
     ReleaseInputBuffers();
 
@@ -557,28 +558,6 @@ float Eye2Texturex(float eye_x, bool is_right){
   return eye_x * 0.5 + float(is_right) * (1.0 - eye_x);
 }
 
-// int NvEncoder::decompress_x(int x){
-//     float f_x = float(x)/(2144*2);
-//     bool is_right = (f_x>0.5);
-//     float eye_x = Texture2Eyex(f_x, is_right);
-//     bool under_bound = (eye_x<lo_bound_x);
-//     bool over_bound = (eye_x>=hi_bound_x);
-//     bool in_bound = !(under_bound||over_bound);
-//     // std::cout << under_bound << in_bound << over_bound << std::endl;
-//     float compressed_x = 0.0;
-//     if(under_bound){
-//         compressed_x = (-(c1_x+c2_x*loBoundC_x)/loBoundC_x + sqrt(((c1_x+c2_x*loBoundC_x)/loBoundC_x)*((c1_x+c2_x*loBoundC_x)/loBoundC_x)+4. *c2_x*(1.-edge_ratio_x)/(edge_ratio_x*loBoundC_x)*eye_x))/(2. * c2_x * (1. - edge_ratio_x))*(edge_ratio_x * loBoundC_x);
-//     }
-//     else if(in_bound){
-//         compressed_x = (eye_x-c1_x) * edge_ratio_x / c2_x;
-//     }
-//     else{
-//         compressed_x = (-(c2_x - edge_ratio_x * c1_x - 2. * edge_ratio_x *c2_x + c2_x*edge_ratio_x*(1.-hiBoundC_x)+edge_ratio_x)/(edge_ratio_x*(1. - hiBoundC_x))+sqrt(((c2_x-edge_ratio_x * c1_x -2.* edge_ratio_x *c2_x + c2_x * edge_ratio_x *(1. - hiBoundC_x)+edge_ratio_x)/(edge_ratio_x * (1.-hiBoundC_x)))*((c2_x - edge_ratio_x*c1_x - 2. *edge_ratio_x*c2_x + c2_x* edge_ratio_x * (1.- hiBoundC_x)+edge_ratio_x)/(edge_ratio_x * (1. - hiBoundC_x))) - 4. *((c2_x* edge_ratio_x -c2_x)*(c1_x -hiBoundC_x+hiBoundC_x*c2_x)/(edge_ratio_x*(1.-hiBoundC_x)*(1. - hiBoundC_x)) - eye_x* (c2_x *edge_ratio_x - c2_x)/(edge_ratio_x * (1. - hiBoundC_x))))) /(2. * c2_x * (edge_ratio_x - 1.))*(edge_ratio_x * (1.-hiBoundC_x));
-//     }
-//     // std::cout << compressed_x << std::endl;
-//     return int(Eye2Texturex(compressed_x*eye_size_ratio_x, is_right)*1280*2);
-// }
-
 int NvEncoder::compress_x(int x){
     float f_x = float(x)/(2144*2);
     bool is_right = (f_x>0.5);
@@ -609,24 +588,6 @@ int NvEncoder::compress_x(int x){
     }
     return int(Eye2Texturex(compressed_x, is_right)*1280*2);
 }
-
-// int NvEncoder::decompress_y(int y){
-//     float f_y = float(y)/2336;
-//     bool under_bound = (f_y<lo_bound_y);
-//     bool over_bound = (f_y>=hi_bound_y);
-//     bool in_bound = !(under_bound||over_bound);
-//     float compressed_y = 0.0;
-//     if(under_bound){
-//         compressed_y = (-(c1_y+c2_y*loBoundC_y)/loBoundC_y + sqrt(((c1_y+c2_y*loBoundC_y)/loBoundC_y)*((c1_y+c2_y*loBoundC_y)/loBoundC_y)+4. *c2_y*(1.-edge_ratio_y)/(edge_ratio_y*loBoundC_y)*f_y))/(2. * c2_y * (1. - edge_ratio_y))*(edge_ratio_y * loBoundC_y);
-//     }
-//     else if(in_bound){
-//         compressed_y = (f_y-c1_y) * edge_ratio_y / c2_y;
-//     }
-//     else{
-//         compressed_y = (-(c2_y - edge_ratio_y * c1_y - 2. * edge_ratio_y *c2_y + c2_y*edge_ratio_y*(1.-hiBoundC_y)+edge_ratio_y)/(edge_ratio_y*(1. - hiBoundC_y))+sqrt(((c2_y-edge_ratio_y * c1_y -2.* edge_ratio_y *c2_y + c2_y * edge_ratio_y *(1. - hiBoundC_y)+edge_ratio_y)/(edge_ratio_y * (1.-hiBoundC_y)))*((c2_y - edge_ratio_y*c1_y - 2. *edge_ratio_y*c2_y + c2_y* edge_ratio_y * (1.- hiBoundC_y)+edge_ratio_y)/(edge_ratio_y * (1. - hiBoundC_y))) - 4. *((c2_y* edge_ratio_y -c2_y)*(c1_y -hiBoundC_y+hiBoundC_y*c2_y)/(edge_ratio_y*(1.-hiBoundC_y)*(1. - hiBoundC_y)) - f_y* (c2_y *edge_ratio_y - c2_y)/(edge_ratio_y * (1. - hiBoundC_y))))) /(2. * c2_y * (edge_ratio_y - 1.))*(edge_ratio_y * (1.-hiBoundC_y));
-//     }
-//     return int(compressed_y*eye_size_ratio_y*1216);
-// }
 
 int NvEncoder::compress_y(int y){
     float f_y = float(y)/2336/eye_size_ratio_y;
@@ -671,33 +632,21 @@ int QP_clip(int QP){
 }
 
 void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint64_t targetTimestampNs){
+    //initialize QPMap
     bool changed = false;
-    // if(targetTimestampNs-prev_timestamp>100000000){
-    //     prev_timestamp = targetTimestampNs;
-    //     changed = true;
-    // }
+    if(qp_map==nullptr){
+        map_width = (m_nWidth+15)/16/2;
+        map_height = (m_nHeight+15)/16;
+        m_numBlocks = (m_nWidth+15)/16*(m_nHeight+15)/16;
+        m_qpDeltaMapSize = m_numBlocks * sizeof(NV_ENC_EMPHASIS_MAP_LEVEL);
+        qp_map = new int8_t[m_qpDeltaMapSize];
+    }
     frameCounter ++;
     if(frameCounter%3 == 1){
         changed = true;
         // frameCounter = 0;
     }
-    int r_leftX;
-    int r_leftY;
-    int r_rightX;
-    int r_rightY;
     if(changed){
-        int width = (m_nWidth+15)/16/2;
-        int height = (m_nHeight+15)/16;
-        m_numBlocks = (m_nWidth+15)/16*(m_nHeight+15)/16;
-        m_qpDeltaMapSize = m_numBlocks * sizeof(NV_ENC_EMPHASIS_MAP_LEVEL);
-
-        r_leftX = (compress_x(leftX)+15)/16;
-        r_leftY = (compress_y(leftY)+15)/16;
-        r_rightX = (compress_x(rightX)+15)/16-width;
-        r_rightY = (compress_y(rightY)+15)/16;
-
-        delete[] qp_map;
-        qp_map = new int8_t[m_qpDeltaMapSize];
         std::normal_distribution<float> QP_dis(5, 80);
         std::uniform_int_distribution<int> int_dis(0, 3);
         int direct_value1 = QP_dis(generator);
@@ -720,88 +669,180 @@ void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint
         QP1 = QP_clip(QP1);
         QP2 = QP_clip(QP2);
 
-        // std::uniform_int_distribution<int> rad_dis(0, 47);
-        // r1 = rad_dis(generator);
         r1 = 18;
         r2 = 47 -r1;
-        int radius1 = width*r1/94;
-        // QP1 = -10;
-        // QP2 = 30;
-        for(int i=0; i<width; i++){
-            for(int j=0; j<height; j++){
+    }
+    int r_leftX = (compress_x(leftX)+15)/16;
+    int r_leftY = (compress_y(leftY)+15)/16;
+    int r_rightX = (compress_x(rightX)+15)/16-map_width;
+    int r_rightY = (compress_y(rightY)+15)/16;
+    changed = changed || (r_leftX!=m_leftX) || (r_leftY!=m_leftY) || (r_rightX!=m_rightX) || (r_rightY!=m_rightY);
+    m_leftX = r_leftX; 
+    m_leftY = r_leftY;
+    m_rightX = r_rightX;
+    m_rightY = r_rightY;
+    if(changed){
+        int radius1 = map_width*r1/94;
+        for(int i=0; i<map_width; i++){
+            for(int j=0; j<map_height; j++){
                 if(i>=r_leftX-radius1 && i <=r_leftX+radius1 && j>=r_leftY-radius1 && j<=r_leftY+radius1 && (i-r_leftX)*(i-r_leftX)+(j-r_leftY)*(j-r_leftY)<=radius1*radius1){
-                    qp_map[j*width*2+i] = static_cast<int8_t>(QP1);
+                    qp_map[j*map_width*2+i] = static_cast<int8_t>(QP1);
                 }
                 else{
-                    qp_map[j*width*2+i] = static_cast<int8_t>(QP2);
+                    qp_map[j*map_width*2+i] = static_cast<int8_t>(QP2);
                 }
                 if(i>=r_rightX-radius1 && i<=r_rightX+radius1 && j>=r_rightY-radius1 && j<=r_rightY+radius1 && (i-r_rightX)*(i-r_rightX)+(j-r_rightY)*(j-r_rightY)<=radius1*radius1){
-                    qp_map[j*width*2+i+width] = static_cast<int8_t>(QP1);
+                    qp_map[j*map_width*2+i+map_width] = static_cast<int8_t>(QP1);
                 }
                 else{
-                    qp_map[j*width*2+i+width] = static_cast<int8_t>(QP2);
+                    qp_map[j*map_width*2+i+map_width] = static_cast<int8_t>(QP2);
                 }
             }
         }
-        
     }
     qp_buf << targetTimestampNs 
     << ", " << QP1 
     << ", " << QP2
     << ", " << r1
-    << ", " << r2 << std::endl;
-
-    // if(changed || m_leftX != leftX){
-    //     m_leftX = leftX;
-    //     changed = true;
-    // }
-    // if(changed || m_leftY != leftY){
-    //     m_leftY = leftY;
-    //     changed = true;
-    // }
-    // if(changed || m_rightX != (rightX)){
-    //     m_rightX = rightX;
-    //     changed = true;
-    // }
-    // if(changed || m_rightY != rightY){
-    //     m_rightY = rightY;
-    //     changed = true;
-    // }
-    // // do a central wrap on the four value then ok
-    // if(changed){
-    //     qp_map = new int8_t[m_qpDeltaMapSize];
-    //     int r_leftX = (decompress_x(m_leftX)+15)/16;
-    //     int r_leftY = (decompress_y(m_leftY)+15)/16;
-    //     int r_rightX = (decompress_x(m_rightX)+15)/16-width;
-    //     int r_rightY = (decompress_y(m_rightY)+15)/16;
-    //     std::ofstream file("nvValue.csv", std::ios_base::app);
-    //     // Write the integers to the file, separated by commas
-    //     file << r_leftX << "," << r_leftY << "," << r_rightX << "," << r_rightY << std::endl;
-    //     // Close the file
-    //     file.close();
-    //     int r = width*18/94;
-    //     for(int i=0; i<width; i++){
-    //         for(int j=0; j<height; j++){
-    //             if(i>=r_leftX-r && i<=r_leftX+r && j>=r_leftY-r && j<=r_leftY+r &&(i-r_leftX)*(i-r_leftX)+(j-r_leftY)*(j-r_leftY)<=r*r){
-    //                 qp_map[j*width*2+i] = static_cast<int8_t>(-19);
-    //             }
-    //             else{
-    //                 qp_map[j*width*2+i] = static_cast<int8_t>(20);
-    //             }
-    //         }
-    //     }
-    //     for(int i=0; i<width; i++){
-    //         for(int j=0; j<height; j++){
-    //             if(i>=r_rightX-r && i<=r_rightX+r && j>=r_rightY-r && j<=r_rightY+r &&(i-r_rightX)*(i-r_rightX)+(j-r_rightY)*(j-r_rightY)<=r*r){
-    //                 qp_map[j*width*2+i+width] = static_cast<int8_t>(-19);
-    //             }
-    //             else{
-    //                 qp_map[j*width*2+i+width] = static_cast<int8_t>(20);
-    //             }
-    //         }
-    //     }
-    // }
+    << ", " << r2
+    << ", " << m_leftX
+    << ", " << m_leftY
+    << ", " << m_rightX
+    << ", " << m_rightY
+    << ", " << map_width
+    << ", " << map_height << std::endl;
 }
+
+// void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint64_t targetTimestampNs){
+//     bool changed = false;
+//     // if(targetTimestampNs-prev_timestamp>100000000){
+//     //     prev_timestamp = targetTimestampNs;
+//     //     changed = true;
+//     // }
+//     frameCounter ++;
+//     if(frameCounter%3 == 1){
+//         changed = true;
+//         // frameCounter = 0;
+//     }
+//     int r_leftX;
+//     int r_leftY;
+//     int r_rightX;
+//     int r_rightY;
+//     if(changed){
+//         m_numBlocks = (m_nWidth+15)/16*(m_nHeight+15)/16;
+//         m_qpDeltaMapSize = m_numBlocks * sizeof(NV_ENC_EMPHASIS_MAP_LEVEL);
+
+//         r_leftX = (compress_x(leftX)+15)/16;
+//         r_leftY = (compress_y(leftY)+15)/16;
+//         r_rightX = (compress_x(rightX)+15)/16-width;
+//         r_rightY = (compress_y(rightY)+15)/16;
+
+//         delete[] qp_map;
+//         qp_map = new int8_t[m_qpDeltaMapSize];
+//         std::normal_distribution<float> QP_dis(5, 80);
+//         std::uniform_int_distribution<int> int_dis(0, 3);
+//         int direct_value1 = QP_dis(generator);
+//         int direct_value2 = QP_dis(generator);
+//         int gap1 = int_dis(generator);
+//         int gap2 = int_dis(generator);
+
+//         if(QP1 <= direct_value1){
+//             QP1 += gap1;
+//         }
+//         else{
+//             QP1 -= gap1;
+//         }
+//         if(QP2 <= direct_value2){
+//             QP2 += gap2;
+//         }
+//         else{
+//             QP2 -= gap2;
+//         }
+//         QP1 = QP_clip(QP1);
+//         QP2 = QP_clip(QP2);
+
+//         // std::uniform_int_distribution<int> rad_dis(0, 47);
+//         // r1 = rad_dis(generator);
+//         r1 = 18;
+//         r2 = 47 -r1;
+//         int radius1 = width*r1/94;
+//         // QP1 = -10;
+//         // QP2 = 30;
+//         for(int i=0; i<width; i++){
+//             for(int j=0; j<height; j++){
+//                 if(i>=r_leftX-radius1 && i <=r_leftX+radius1 && j>=r_leftY-radius1 && j<=r_leftY+radius1 && (i-r_leftX)*(i-r_leftX)+(j-r_leftY)*(j-r_leftY)<=radius1*radius1){
+//                     qp_map[j*width*2+i] = static_cast<int8_t>(QP1);
+//                 }
+//                 else{
+//                     qp_map[j*width*2+i] = static_cast<int8_t>(QP2);
+//                 }
+//                 if(i>=r_rightX-radius1 && i<=r_rightX+radius1 && j>=r_rightY-radius1 && j<=r_rightY+radius1 && (i-r_rightX)*(i-r_rightX)+(j-r_rightY)*(j-r_rightY)<=radius1*radius1){
+//                     qp_map[j*width*2+i+width] = static_cast<int8_t>(QP1);
+//                 }
+//                 else{
+//                     qp_map[j*width*2+i+width] = static_cast<int8_t>(QP2);
+//                 }
+//             }
+//         }
+        
+//     }
+//     qp_buf << targetTimestampNs 
+//     << ", " << QP1 
+//     << ", " << QP2
+//     << ", " << r1
+//     << ", " << r2 << std::endl;
+
+//     // if(changed || m_leftX != leftX){
+//     //     m_leftX = leftX;
+//     //     changed = true;
+//     // }
+//     // if(changed || m_leftY != leftY){
+//     //     m_leftY = leftY;
+//     //     changed = true;
+//     // }
+//     // if(changed || m_rightX != (rightX)){
+//     //     m_rightX = rightX;
+//     //     changed = true;
+//     // }
+//     // if(changed || m_rightY != rightY){
+//     //     m_rightY = rightY;
+//     //     changed = true;
+//     // }
+//     // // do a central wrap on the four value then ok
+//     // if(changed){
+//     //     qp_map = new int8_t[m_qpDeltaMapSize];
+//     //     int r_leftX = (decompress_x(m_leftX)+15)/16;
+//     //     int r_leftY = (decompress_y(m_leftY)+15)/16;
+//     //     int r_rightX = (decompress_x(m_rightX)+15)/16-width;
+//     //     int r_rightY = (decompress_y(m_rightY)+15)/16;
+//     //     std::ofstream file("nvValue.csv", std::ios_base::app);
+//     //     // Write the integers to the file, separated by commas
+//     //     file << r_leftX << "," << r_leftY << "," << r_rightX << "," << r_rightY << std::endl;
+//     //     // Close the file
+//     //     file.close();
+//     //     int r = width*18/94;
+//     //     for(int i=0; i<width; i++){
+//     //         for(int j=0; j<height; j++){
+//     //             if(i>=r_leftX-r && i<=r_leftX+r && j>=r_leftY-r && j<=r_leftY+r &&(i-r_leftX)*(i-r_leftX)+(j-r_leftY)*(j-r_leftY)<=r*r){
+//     //                 qp_map[j*width*2+i] = static_cast<int8_t>(-19);
+//     //             }
+//     //             else{
+//     //                 qp_map[j*width*2+i] = static_cast<int8_t>(20);
+//     //             }
+//     //         }
+//     //     }
+//     //     for(int i=0; i<width; i++){
+//     //         for(int j=0; j<height; j++){
+//     //             if(i>=r_rightX-r && i<=r_rightX+r && j>=r_rightY-r && j<=r_rightY+r &&(i-r_rightX)*(i-r_rightX)+(j-r_rightY)*(j-r_rightY)<=r*r){
+//     //                 qp_map[j*width*2+i+width] = static_cast<int8_t>(-19);
+//     //             }
+//     //             else{
+//     //                 qp_map[j*width*2+i+width] = static_cast<int8_t>(20);
+//     //             }
+//     //         }
+//     //     }
+//     // }
+// }
 
 NVENCSTATUS NvEncoder::DoEncode(NV_ENC_INPUT_PTR inputBuffer, NV_ENC_OUTPUT_PTR outputBuffer, NV_ENC_PIC_PARAMS *pPicParams)
 {
