@@ -87,23 +87,23 @@ void VideoEncoderNVENC::Shutdown()
 void VideoEncoderNVENC::Transmit(ID3D11Texture2D *pTexture, uint64_t presentationTime, uint64_t targetTimestampNs, bool insertIDR)
 {
 	auto params = GetDynamicEncoderParams();
-	int leftxfromrust=int(GetEyeGazeLocationLeftX());
-	int leftyfromrust=int(GetEyeGazeLocationLeftY());
-	int rightxfromrust=int(GetEyeGazeLocationRightX());
-	int rightyfromrust=int(GetEyeGazeLocationRightY());
+	// int leftxfromrust=int(GetEyeGazeLocationLeftX());
+	// int leftyfromrust=int(GetEyeGazeLocationLeftY());
+	// int rightxfromrust=int(GetEyeGazeLocationRightX());
+	// int rightyfromrust=int(GetEyeGazeLocationRightY());
 	int leftx=int(GetEyeGazeLocationLeftX());
 	int lefty=int(2336-GetEyeGazeLocationLeftY());
 	int rightx=int(GetEyeGazeLocationRightX());
 	int righty=int(2336-GetEyeGazeLocationRightY());
-	leftx=1072;
-	lefty=1168;
-	rightx=1072+2144;
-	righty=1168;
-	std::ofstream file("passing.csv", std::ios_base::app);
+	// leftx=1072;
+	// lefty=1168;
+	// rightx=1072+2144;
+	// righty=1168;
+	// std::ofstream file("passing.csv", std::ios_base::app);
     // Write the integers to the file, separated by commas
-    file << leftxfromrust << "," << leftyfromrust << "," << rightxfromrust << "," << rightyfromrust << std::endl;
+    // file << leftxfromrust << "," << leftyfromrust << "," << rightxfromrust << "," << rightyfromrust << std::endl;
     // Close the file
-    file.close();
+    // file.close();
 	if (params.updated) {
 		m_bitrateInMBits = params.bitrate_bps / 1'000'000;
 		NV_ENC_INITIALIZE_PARAMS initializeParams = { NV_ENC_INITIALIZE_PARAMS_VER };
