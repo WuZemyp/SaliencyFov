@@ -681,6 +681,8 @@ void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint
     m_leftY = r_leftY;
     m_rightX = r_rightX;
     m_rightY = r_rightY;
+    //QP1=15;
+    //QP2=45;
     if(changed){
         int radius1 = map_width*r1/94;
         for(int i=0; i<map_width; i++){

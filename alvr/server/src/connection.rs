@@ -39,6 +39,7 @@ use std::fs::OpenOptions;
 use std::io::prelude::*;
 use csv::Writer;
 use std::fs::File;
+use std::fs;
 
 use csv::WriterBuilder;
 use std::{
@@ -81,28 +82,31 @@ fn is_streaming(client_hostname: &str) -> bool {
         .unwrap_or(false)
 }
 fn create_csv_file_for_statistics(filename: &str) -> Result<(), Box<dyn Error>> {
-    let mut writer = WriterBuilder::new().has_headers(false).from_writer(File::create(filename)?);
+    if !fs::metadata(filename).is_ok() {
+        let mut writer = WriterBuilder::new().has_headers(false).from_writer(File::create(filename)?);
 
-    // Write the column names in the first row
-    writer.write_record(&[
-        "target_ts(nanos)",
-        "game latency(ms)",
-        "composite latency(ms)",
-        "encode latency(ms)",
-        "decode latency(ms)",
-        "network latency(ms)",
-        "decoder_queue_latency(ms)",
-        "rendering(ms)",
-        "vsync_queue_latency(ms)",
-        "total latency(ms)",
-        "target bitrate(mps)",
-        "total size for this frame(encoded)(bytes)",
-        "send_ts(ms)",
-        "arrival_ts(ms)",
-        "server_fps(frame per second)",
-        "client_fps(frame per second)",
-
-    ])?;
+        // Write the column names in the first row
+        writer.write_record(&[
+            "target_ts(nanos)",
+            "game latency(ms)",
+            "composite latency(ms)",
+            "encode latency(ms)",
+            "decode latency(ms)",
+            "network latency(ms)",
+            "decoder_queue_latency(ms)",
+            "rendering(ms)",
+            "vsync_queue_latency(ms)",
+            "total latency(ms)",
+            "target bitrate(mps)",
+            "total size for this frame(encoded)(bytes)",
+            "send_ts(ms)",
+            "arrival_ts(ms)",
+            "server_fps(frame per second)",
+            "client_fps(frame per second)",
+        ])?;
+    } else {
+        println!("File '{}' already exists, skipping creation.", filename);
+    }
 
     Ok(())
 }
@@ -125,6 +129,7 @@ pub fn compute_eye_gaze_location(
     let mut left_pitch_positive = false;
     let mut left_frame_x = 0.0;
     let mut left_frame_y = 0.0;
+    
     
     if yaw > 0.0 {
         left_yaw_positive = true;
@@ -899,7 +904,8 @@ fn connection_pipeline(
                         
                         let frame_width=2144;
                         let frame_height=2336;
-                        let (left_frame_x,left_frame_y,right_frame_x,right_frame_y)= compute_eye_gaze_location(frame_width,frame_height,left_yaw as f64, left_pitch as f64, tracking.left_view_fov.left as f64, tracking.left_view_fov.right as f64, tracking.left_view_fov.up as f64, tracking.left_view_fov.down as f64, tracking.right_view_fov.left as f64, tracking.right_view_fov.right as f64, tracking.right_view_fov.up as f64, tracking.right_view_fov.down as f64);
+                        let (left_frame_x,left_frame_y,right_frame_x,right_frame_y)= compute_eye_gaze_location(frame_width,frame_height,left_yaw as f64, left_pitch as f64, -0.6981317, 0.6981317, tracking.left_view_fov.up as f64, tracking.left_view_fov.down as f64, -0.6981317, 0.6981317, tracking.right_view_fov.up as f64, tracking.right_view_fov.down as f64);
+                        //let (left_frame_x,left_frame_y,right_frame_x,right_frame_y)= compute_eye_gaze_location(frame_width,frame_height,left_yaw as f64, left_pitch as f64, tracking.left_view_fov.left as f64, tracking.left_view_fov.right as f64, tracking.left_view_fov.up as f64, tracking.left_view_fov.down as f64, tracking.right_view_fov.left as f64, tracking.right_view_fov.right as f64, tracking.right_view_fov.up as f64, tracking.right_view_fov.down as f64);
                         BITRATE_MANAGER.lock().report_eye_gaze_update(left_frame_x, left_frame_y, right_frame_x, right_frame_y);
                         let tracking_ts= tracking.target_timestamp.as_nanos().to_string();
                         let eye_data=[tracking_ts,local_quat_array[0].to_string(),local_quat_array[1].to_string(),local_quat_array[2].to_string(),local_quat_array[3].to_string(),//local combined eye orientation
