@@ -414,8 +414,8 @@ private:
     */
     virtual void ReleaseInputBuffers() = 0;
 
-    // int decompress_x(int x);
-    // int decompress_y(int y);
+    int decompress_x(int x);
+    int decompress_y(int y);
     int compress_x(int x);
     int compress_y(int y);
 

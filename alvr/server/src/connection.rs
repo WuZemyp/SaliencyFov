@@ -139,23 +139,28 @@ pub fn compute_eye_gaze_location(
     }
 
     if left_yaw_positive {
-        let projection_horizontal_left_frame =
-            (yaw.abs().tan() / left_view_fov_left.abs().tan()) * (frame_width as f64 / 2.0);
-        left_frame_x = (frame_width as f64 / 2.0) - projection_horizontal_left_frame;
+        // let projection_horizontal_left_frame =
+            // (yaw.abs().tan() / left_view_fov_left.abs().tan()) * (frame_width as f64 / 2.0);
+        // left_frame_x = (frame_width as f64 / 2.0) - projection_horizontal_left_frame;
+        left_frame_x = (left_view_fov_left.abs().tan()-yaw.abs().tan())*frame_width as f64 / (left_view_fov_left.abs().tan()+left_view_fov_right.abs().tan());
     } else {
-        let projection_horizontal_left_frame =
-            (yaw.abs().tan() / left_view_fov_right.abs().tan()) * (frame_width as f64 / 2.0);
-        left_frame_x = (frame_width as f64 / 2.0) + projection_horizontal_left_frame;
+        // let projection_horizontal_left_frame =
+        //     (yaw.abs().tan() / left_view_fov_right.abs().tan()) * (frame_width as f64 / 2.0);
+        // left_frame_x = (frame_width as f64 / 2.0) + projection_horizontal_left_frame;
+        left_frame_x = (left_view_fov_left.abs().tan()+yaw.abs().tan())*frame_width as f64 / (left_view_fov_left.abs().tan()+left_view_fov_right.abs().tan());
     }
 
     if left_pitch_positive {
-        let projection_vertical_left_frame =
-            (pitch.abs().tan() / left_view_fov_up.abs().tan()) * (frame_height as f64 / 2.0);
-        left_frame_y = (frame_height as f64 / 2.0) + projection_vertical_left_frame;
+        // let projection_vertical_left_frame =
+        //     (pitch.abs().tan() / left_view_fov_up.abs().tan()) * (frame_height as f64 / 2.0);
+        // left_frame_y = (frame_height as f64 / 2.0) + projection_vertical_left_frame;
+        left_frame_y = (left_view_fov_down.abs().tan()+pitch.abs().tan())*frame_height as f64 / (left_view_fov_up.abs().tan()+left_view_fov_down.abs().tan());
     } else {
-        let projection_vertical_left_frame =
-            (pitch.abs().tan() / left_view_fov_down.abs().tan()) * (frame_height as f64 / 2.0);
-        left_frame_y = (frame_height as f64 / 2.0) - projection_vertical_left_frame;
+        // let projection_vertical_left_frame =
+        //     (pitch.abs().tan() / left_view_fov_down.abs().tan()) * (frame_height as f64 / 2.0);
+        // left_frame_y = (frame_height as f64 / 2.0) - projection_vertical_left_frame;
+        left_frame_y = (left_view_fov_down.abs().tan()-pitch.abs().tan())*frame_height as f64 / (left_view_fov_up.abs().tan()+left_view_fov_down.abs().tan());
+
     }
 
     // Separate calculation for right frame right eye gaze
@@ -172,23 +177,27 @@ pub fn compute_eye_gaze_location(
     }
 
     if right_yaw_positive {
-        let projection_horizontal_right_frame =
-            (yaw.abs().tan() / right_view_fov_left.abs().tan()) * (frame_width as f64 / 2.0);
-        right_frame_x = (frame_width as f64 / 2.0) - projection_horizontal_right_frame+frame_width as f64;
+        // let projection_horizontal_right_frame =
+        //     (yaw.abs().tan() / right_view_fov_left.abs().tan()) * (frame_width as f64 / 2.0);
+        // right_frame_x = (frame_width as f64 / 2.0) - projection_horizontal_right_frame+frame_width as f64;
+        right_frame_x = (right_view_fov_left.abs().tan()-yaw.abs().tan()) * frame_width as f64 / (right_view_fov_left.abs().tan()+right_view_fov_right.abs().tan()) + frame_width as f64;
     } else {
-        let projection_horizontal_right_frame =
-            (yaw.abs().tan() / right_view_fov_right.abs().tan()) * (frame_width as f64 / 2.0);
-        right_frame_x = (frame_width as f64 / 2.0) + projection_horizontal_right_frame+frame_width as f64;
+        // let projection_horizontal_right_frame =
+        //     (yaw.abs().tan() / right_view_fov_right.abs().tan()) * (frame_width as f64 / 2.0);
+        // right_frame_x = (frame_width as f64 / 2.0) + projection_horizontal_right_frame+frame_width as f64;
+        right_frame_x = (right_view_fov_left.abs().tan()+yaw.abs().tan()) * frame_width as f64 / (right_view_fov_left.abs().tan()+right_view_fov_right.abs().tan()) + frame_width as f64;
     }
 
     if right_pitch_positive {
-        let projection_vertical_right_frame =
-            (pitch.abs().tan() / right_view_fov_up.abs().tan()) * (frame_height as f64 / 2.0);
-        right_frame_y = (frame_height as f64 / 2.0) + projection_vertical_right_frame;
+        // let projection_vertical_right_frame =
+        //     (pitch.abs().tan() / right_view_fov_up.abs().tan()) * (frame_height as f64 / 2.0);
+        // right_frame_y = (frame_height as f64 / 2.0) + projection_vertical_right_frame;
+        right_frame_y = (right_view_fov_down.abs().tan()+pitch.abs().tan())*frame_height as f64 / (right_view_fov_up.abs().tan()+right_view_fov_down.abs().tan());
     } else {
-        let projection_vertical_right_frame =
-            (pitch.abs().tan() / right_view_fov_down.abs().tan()) * (frame_height as f64 / 2.0);
-        right_frame_y = (frame_height as f64 / 2.0) - projection_vertical_right_frame;
+        // let projection_vertical_right_frame =
+        //     (pitch.abs().tan() / right_view_fov_down.abs().tan()) * (frame_height as f64 / 2.0);
+        // right_frame_y = (frame_height as f64 / 2.0) - projection_vertical_right_frame;
+        right_frame_y = (right_view_fov_down.abs().tan()-pitch.abs().tan())*frame_height as f64 / (right_view_fov_up.abs().tan()+right_view_fov_down.abs().tan());
     }
 
     (left_frame_x, left_frame_y, right_frame_x, right_frame_y)
@@ -904,8 +913,8 @@ fn connection_pipeline(
                         
                         let frame_width=2144;
                         let frame_height=2336;
-                        let (left_frame_x,left_frame_y,right_frame_x,right_frame_y)= compute_eye_gaze_location(frame_width,frame_height,left_yaw as f64, left_pitch as f64, -0.6981317, 0.6981317, tracking.left_view_fov.up as f64, tracking.left_view_fov.down as f64, -0.6981317, 0.6981317, tracking.right_view_fov.up as f64, tracking.right_view_fov.down as f64);
-                        //let (left_frame_x,left_frame_y,right_frame_x,right_frame_y)= compute_eye_gaze_location(frame_width,frame_height,left_yaw as f64, left_pitch as f64, tracking.left_view_fov.left as f64, tracking.left_view_fov.right as f64, tracking.left_view_fov.up as f64, tracking.left_view_fov.down as f64, tracking.right_view_fov.left as f64, tracking.right_view_fov.right as f64, tracking.right_view_fov.up as f64, tracking.right_view_fov.down as f64);
+                        // let (left_frame_x,left_frame_y,right_frame_x,right_frame_y)= compute_eye_gaze_location(frame_width,frame_height,left_yaw as f64, left_pitch as f64, -0.6981317, 0.6981317, tracking.left_view_fov.up as f64, tracking.left_view_fov.down as f64, -0.6981317, 0.6981317, tracking.right_view_fov.up as f64, tracking.right_view_fov.down as f64);
+                        let (left_frame_x,left_frame_y,right_frame_x,right_frame_y)= compute_eye_gaze_location(frame_width,frame_height,left_yaw as f64, left_pitch as f64, tracking.left_view_fov.left as f64, tracking.left_view_fov.right as f64, tracking.left_view_fov.up as f64, tracking.left_view_fov.down as f64, tracking.right_view_fov.left as f64, tracking.right_view_fov.right as f64, tracking.right_view_fov.up as f64, tracking.right_view_fov.down as f64);
                         BITRATE_MANAGER.lock().report_eye_gaze_update(left_frame_x, left_frame_y, right_frame_x, right_frame_y);
                         let tracking_ts= tracking.target_timestamp.as_nanos().to_string();
                         let eye_data=[tracking_ts,local_quat_array[0].to_string(),local_quat_array[1].to_string(),local_quat_array[2].to_string(),local_quat_array[3].to_string(),//local combined eye orientation
