@@ -8,7 +8,7 @@ use crate::{
     statistics::StatisticsManager,
     tracking::{self, TrackingManager},
     FfiFov, FfiViewsConfig, VideoPacket, BITRATE_MANAGER, DECODER_CONFIG, LIFECYCLE_STATE,
-    SERVER_DATA_MANAGER, STATISTICS_MANAGER, VIDEO_MIRROR_SENDER, VIDEO_RECORDING_FILE,
+    SERVER_DATA_MANAGER, STATISTICS_MANAGER, VIDEO_MIRROR_SENDER, VIDEO_RECORDING_FILE,EYE_GAZE_DATA,
 };
 use alvr_audio::AudioDevice;
 use alvr_common::{
@@ -916,6 +916,11 @@ fn connection_pipeline(
                         // let (left_frame_x,left_frame_y,right_frame_x,right_frame_y)= compute_eye_gaze_location(frame_width,frame_height,left_yaw as f64, left_pitch as f64, -0.6981317, 0.6981317, tracking.left_view_fov.up as f64, tracking.left_view_fov.down as f64, -0.6981317, 0.6981317, tracking.right_view_fov.up as f64, tracking.right_view_fov.down as f64);
                         let (left_frame_x,left_frame_y,right_frame_x,right_frame_y)= compute_eye_gaze_location(frame_width,frame_height,left_yaw as f64, left_pitch as f64, tracking.left_view_fov.left as f64, tracking.left_view_fov.right as f64, tracking.left_view_fov.up as f64, tracking.left_view_fov.down as f64, tracking.right_view_fov.left as f64, tracking.right_view_fov.right as f64, tracking.right_view_fov.up as f64, tracking.right_view_fov.down as f64);
                         BITRATE_MANAGER.lock().report_eye_gaze_update(left_frame_x, left_frame_y, right_frame_x, right_frame_y);
+                        let mut data = EYE_GAZE_DATA.lock().unwrap();
+                        data[0] = left_frame_x;
+                        data[1] = left_frame_y;
+                        data[2] = right_frame_x;
+                        data[3] = right_frame_y;
                         let tracking_ts= tracking.target_timestamp.as_nanos().to_string();
                         let eye_data=[tracking_ts,local_quat_array[0].to_string(),local_quat_array[1].to_string(),local_quat_array[2].to_string(),local_quat_array[3].to_string(),//local combined eye orientation
                         local_position_array[0].to_string(),local_position_array[1].to_string(),local_position_array[2].to_string(),//local combined eye position

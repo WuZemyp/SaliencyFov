@@ -362,6 +362,7 @@ dependencies = [
  "futures",
  "headers",
  "hyper",
+ "lazy_static",
  "pkg-config",
  "reqwest",
  "rosc",

@@ -129,7 +129,7 @@ extern "C" unsigned long long (*GetSerialNumber)(unsigned long long deviceID, ch
 extern "C" void (*SetOpenvrProps)(unsigned long long deviceID);
 extern "C" void (*RegisterButtons)(unsigned long long deviceID);
 extern "C" void (*WaitForVSync)();
-
+extern "C" const float* (*GetEyeGazeData)();
 extern "C" void *CppEntryPoint(const char *pInterfaceName, int *pReturnCode);
 extern "C" void InitializeStreaming();
 extern "C" void DeinitializeStreaming();

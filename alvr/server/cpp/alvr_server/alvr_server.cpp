@@ -199,11 +199,12 @@ double (*GetEyeGazeLocationLeftY)();
 double (*GetEyeGazeLocationRightX)();
 double (*GetEyeGazeLocationRightY)();
 
+
 unsigned long long (*GetSerialNumber)(unsigned long long deviceID, char *outString);
 void (*SetOpenvrProps)(unsigned long long deviceID);
 void (*RegisterButtons)(unsigned long long deviceID);
 void (*WaitForVSync)();
-
+const float* (*GetEyeGazeData)();
 void *CppEntryPoint(const char *interface_name, int *return_code) {
     HookCrashHandler();
 

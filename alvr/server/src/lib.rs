@@ -49,10 +49,12 @@ use std::{
     sync::Once,
     thread::{self, JoinHandle},
     time::{Duration, Instant},
+    sync::Mutex as stdMutex,
 };
 use sysinfo::{ProcessRefreshKind, RefreshKind, SystemExt};
 use tokio::{runtime::Runtime, sync::broadcast};
-
+use lazy_static::lazy_static;
+use std::os::raw::c_float;
 pub static LIFECYCLE_STATE: RwLock<LifecycleState> = RwLock::new(LifecycleState::StartingUp);
 pub static IS_RESTARTING: RelaxedAtomic = RelaxedAtomic::new(false);
 static CONNECTION_THREAD: RwLock<Option<JoinHandle<()>>> = RwLock::new(None);
@@ -69,6 +71,9 @@ static WEBSERVER_RUNTIME: OptLazy<Runtime> = Lazy::new(|| Mutex::new(Runtime::ne
 static STATISTICS_MANAGER: OptLazy<StatisticsManager> = alvr_common::lazy_mut_none();
 static BITRATE_MANAGER: Lazy<Mutex<BitrateManager>> =
     Lazy::new(|| Mutex::new(BitrateManager::new(256, 60.0)));
+lazy_static! {
+        pub static ref EYE_GAZE_DATA: stdMutex<[f64; 4]> = stdMutex::new([1072.0, 1168.0, 3216.0, 1168.0]);
+}
 
 pub struct VideoPacket {
     pub header: VideoPacketHeader,
@@ -115,7 +120,7 @@ pub fn create_recording_file(settings: &Settings) {
         "recording.{}.{ext}",
         chrono::Local::now().format("%F.%H-%M-%S")
     ));
-
+    
     match File::create(path) {
         Ok(mut file) => {
             if let Some(config) = &*DECODER_CONFIG.lock() {
@@ -444,6 +449,12 @@ pub unsafe extern "C" fn HmdDriverFactory(
             }
         }
     }
+    extern "C" fn get_eye_gaze_data() -> *const c_float{
+        let data = EYE_GAZE_DATA.lock().unwrap();
+        
+        let arr: [f32; 4] = [data[0] as f32,data[1] as f32,data[2] as f32,data[3] as f32];
+        return (Box::into_raw(Box::new(arr)) as *const f32);
+    }
 
     LogError = Some(log_error);
     LogWarn = Some(log_warn);
@@ -468,6 +479,6 @@ pub unsafe extern "C" fn HmdDriverFactory(
     GetEyeGazeLocationRightY = Some(get_eye_gaze_location_right_y);
 
     WaitForVSync = Some(wait_for_vsync);
-
+    GetEyeGazeData = Some(get_eye_gaze_data);
     CppEntryPoint(interface_name, return_code)
 }

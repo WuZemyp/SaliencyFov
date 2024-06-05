@@ -22,6 +22,7 @@ alvr_server_io.workspace = true
 alvr_session.workspace = true
 alvr_sockets.workspace = true
 csv = "1.1.6"
+lazy_static = "1.4"
 ash = "0.37"
 bincode = "1"
 bytes = "1"
