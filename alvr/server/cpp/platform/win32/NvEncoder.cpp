@@ -10,7 +10,9 @@
 */
 
 #include "NvEncoder.h"
-
+#include <iostream>
+#include <cmath>
+#include <algorithm>
 #ifndef _WIN32
 #include <cstring>
 static inline bool operator==(const GUID &guid1, const GUID &guid2) {
@@ -671,6 +673,20 @@ int QP_clip(int QP){
     }
 }
 
+int NvEncoder::CalculateQPValue_leftEye(int i, int j){
+    double nominator = (pow((i-m_leftX),2) + pow((j-m_leftY),2));
+    double denominator = 2 * pow(this->W,2);
+    int qp = static_cast<double>(this->QO_Max) * (1.0f - exp(-(nominator/denominator)));
+    return qp;
+}
+
+int NvEncoder::CalculateQPValue_rightEye(int i, int j){
+    double nominator = (pow((i-m_rightX),2) + pow((j-m_rightY),2));
+    double denominator = 2 * pow(this->W,2);
+    int qp = static_cast<double>(this->QO_Max) * (1.0f - exp(-(nominator/denominator)));
+    return qp;
+}
+
 void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint64_t targetTimestampNs){
     //initialize QPMap
     bool changed = false;
@@ -716,20 +732,27 @@ void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint
     // }
     int r_leftX = (decompress_x(leftX)+15)/16;
     int r_leftY = (decompress_y(leftY)+15)/16;
-    int r_rightX = (decompress_x(rightX)+15)/16-map_width;
+    int r_rightX = (decompress_x(rightX)+15)/16;//-map_width
     int r_rightY = (decompress_y(rightY)+15)/16;
     changed = changed || (r_leftX!=m_leftX) || (r_leftY!=m_leftY) || (r_rightX!=m_rightX) || (r_rightY!=m_rightY);
     m_leftX = r_leftX; 
     m_leftY = r_leftY;
     m_rightX = r_rightX;
     m_rightY = r_rightY;
+    this->W = (this->m_nWidth+15)/16;
     //QP1=15;
     //QP2=45
+    qp_buf << targetTimestampNs;
     if(changed){
 
-        for(int i = 0; i < map_width; i++){
-            for(int j = 0; j < map_height; j++){
-                
+        for(int i = 0; i < map_width*2; i++){
+            for(int j = 0; j < map_height; j++){    
+
+                int qp_basedOnLeft = CalculateQPValue_leftEye(i,j);
+                int qp_basedOnRight = CalculateQPValue_rightEye(i,j);
+                int final_qp = min(qp_basedOnLeft,qp_basedOnRight);
+                qp_map[j*map_width*2+i] = static_cast<int8_t>(final_qp);
+                 qp_buf<< ", "<<final_qp;
             }
         }
 
@@ -739,26 +762,26 @@ void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint
 
 
 
-        int radius1 = map_width*r1/94;
-        for(int i=0; i<map_width; i++){
-            for(int j=0; j<map_height; j++){
-                if(i>=r_leftX-radius1 && i <=r_leftX+radius1 && j>=r_leftY-radius1 && j<=r_leftY+radius1 && (i-r_leftX)*(i-r_leftX)+(j-r_leftY)*(j-r_leftY)<=radius1*radius1){
-                    qp_map[j*map_width*2+i] = static_cast<int8_t>(QP1);
-                }
-                else{
-                    qp_map[j*map_width*2+i] = static_cast<int8_t>(QP2);
-                }
-                if(i>=r_rightX-radius1 && i<=r_rightX+radius1 && j>=r_rightY-radius1 && j<=r_rightY+radius1 && (i-r_rightX)*(i-r_rightX)+(j-r_rightY)*(j-r_rightY)<=radius1*radius1){
-                    qp_map[j*map_width*2+i+map_width] = static_cast<int8_t>(QP1);
-                }
-                else{
-                    qp_map[j*map_width*2+i+map_width] = static_cast<int8_t>(QP2);
-                }
-            }
-        }
+        // int radius1 = map_width*r1/94;
+        // for(int i=0; i<map_width; i++){
+        //     for(int j=0; j<map_height; j++){
+        //         if(i>=r_leftX-radius1 && i <=r_leftX+radius1 && j>=r_leftY-radius1 && j<=r_leftY+radius1 && (i-r_leftX)*(i-r_leftX)+(j-r_leftY)*(j-r_leftY)<=radius1*radius1){
+        //             qp_map[j*map_width*2+i] = static_cast<int8_t>(QP1);
+        //         }
+        //         else{
+        //             qp_map[j*map_width*2+i] = static_cast<int8_t>(QP2);
+        //         }
+        //         if(i>=r_rightX-radius1 && i<=r_rightX+radius1 && j>=r_rightY-radius1 && j<=r_rightY+radius1 && (i-r_rightX)*(i-r_rightX)+(j-r_rightY)*(j-r_rightY)<=radius1*radius1){
+        //             qp_map[j*map_width*2+i+map_width] = static_cast<int8_t>(QP1);
+        //         }
+        //         else{
+        //             qp_map[j*map_width*2+i+map_width] = static_cast<int8_t>(QP2);
+        //         }
+        //     }
+        // }
     }
-    qp_buf << targetTimestampNs 
-    << ", " << QP1 
+     
+    qp_buf<< ", " << QP1 
     << ", " << QP2
     << ", " << r1
     << ", " << r2

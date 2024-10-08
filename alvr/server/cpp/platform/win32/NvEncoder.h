@@ -259,7 +259,9 @@ public:
     uint32_t GetEncoderBufferCount() const { return m_nEncoderBuffer; }
     void GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint64_t targetTimestampNs);
 
-    //void CalculateQPValue()
+    int CalculateQPValue_leftEye(int i, int j);
+
+    int CalculateQPValue_rightEye(int i, int j);
 protected:
 
     /**
@@ -498,6 +500,6 @@ private:
     int map_width = 0;
     int map_height = 0;
     int QO_Max = 10;
-    int W = 4;
+    int W = (4288+15)/16/4;
 };
 
