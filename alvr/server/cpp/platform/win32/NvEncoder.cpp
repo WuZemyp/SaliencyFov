@@ -681,39 +681,39 @@ void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint
         m_qpDeltaMapSize = m_numBlocks * sizeof(NV_ENC_EMPHASIS_MAP_LEVEL);
         qp_map = new int8_t[m_qpDeltaMapSize];
     }
-    frameCounter ++;
-    if(frameCounter%3 == 1){
-        changed = true;
-        // frameCounter = 0;
-    }
-    if(changed){
-        std::normal_distribution<float> QP_dis(5, 80);
-        std::uniform_int_distribution<int> int_dis(0, 3);
-        int direct_value1 = QP_dis(generator);
-        int direct_value2 = QP_dis(generator);
-        int gap1 = int_dis(generator);
-        int gap2 = int_dis(generator);
+    // frameCounter ++;
+    // if(frameCounter%3 == 1){
+    //     changed = true;
+    //     // frameCounter = 0;
+    // }
+    // if(changed){
+    //     std::normal_distribution<float> QP_dis(5, 80);
+    //     std::uniform_int_distribution<int> int_dis(0, 3);
+    //     int direct_value1 = QP_dis(generator);
+    //     int direct_value2 = QP_dis(generator);
+    //     int gap1 = int_dis(generator);
+    //     int gap2 = int_dis(generator);
 
-        if(QP1 <= direct_value1){
-            QP1 += gap1;
-        }
-        else{
-            QP1 -= gap1;
-        }
-        if(QP2 <= direct_value2){
-            QP2 += gap2;
-        }
-        else{
-            QP2 -= gap2;
-        }
-        QP1 = QP_clip(QP1);
-        QP2 = QP_clip(QP2);
-        QP1 = -5;
-        QP2 = 25;
+    //     if(QP1 <= direct_value1){
+    //         QP1 += gap1;
+    //     }
+    //     else{
+    //         QP1 -= gap1;
+    //     }
+    //     if(QP2 <= direct_value2){
+    //         QP2 += gap2;
+    //     }
+    //     else{
+    //         QP2 -= gap2;
+    //     }
+    //     QP1 = QP_clip(QP1);
+    //     QP2 = QP_clip(QP2);
+    //     QP1 = -5;
+    //     QP2 = 25;
 
-        r1 = 18;
-        r2 = 47 -r1;
-    }
+    //     r1 = 18;
+    //     r2 = 47 -r1;
+    // }
     int r_leftX = (decompress_x(leftX)+15)/16;
     int r_leftY = (decompress_y(leftY)+15)/16;
     int r_rightX = (decompress_x(rightX)+15)/16-map_width;
@@ -726,6 +726,19 @@ void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint
     //QP1=15;
     //QP2=45
     if(changed){
+
+        for(int i = 0; i < map_width; i++){
+            for(int j = 0; j < map_height; j++){
+                
+            }
+        }
+
+
+
+
+
+
+
         int radius1 = map_width*r1/94;
         for(int i=0; i<map_width; i++){
             for(int j=0; j<map_height; j++){
