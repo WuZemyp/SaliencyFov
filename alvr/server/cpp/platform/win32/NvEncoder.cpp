@@ -739,21 +739,22 @@ void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint
     m_leftY = r_leftY;
     m_rightX = r_rightX;
     m_rightY = r_rightY;
-    this->W = (this->m_nWidth+15)/16;
+    this->W = map_width*2/12;
     //QP1=15;
     //QP2=45
     qp_buf << targetTimestampNs;
     if(changed){
 
-        for(int i = 0; i < map_width*2; i++){
-            for(int j = 0; j < map_height; j++){    
+        for(int i = 0; i < map_height; i++){
+            for(int j = 0; j < map_width*2; j++){    
 
-                int qp_basedOnLeft = CalculateQPValue_leftEye(i,j);
-                int qp_basedOnRight = CalculateQPValue_rightEye(i,j);
-                int final_qp = min(qp_basedOnLeft,qp_basedOnRight);
+                int qp_basedOnLeft = CalculateQPValue_leftEye(j,i);
+                int qp_basedOnRight = CalculateQPValue_rightEye(j,i);
+                int final_qp = (((qp_basedOnLeft) < (qp_basedOnRight)) ? (qp_basedOnLeft) : (qp_basedOnRight));
                 qp_map[j*map_width*2+i] = static_cast<int8_t>(final_qp);
-                 qp_buf<< ", "<<final_qp;
+                //qp_buf<< ", "<<final_qp;
             }
+            //qp_buf<<std::endl;
         }
 
 
