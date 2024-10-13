@@ -751,7 +751,7 @@ void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint
                 int qp_basedOnLeft = CalculateQPValue_leftEye(j,i);
                 int qp_basedOnRight = CalculateQPValue_rightEye(j,i);
                 int final_qp = (((qp_basedOnLeft) < (qp_basedOnRight)) ? (qp_basedOnLeft) : (qp_basedOnRight));
-                qp_map[j*map_width*2+i] = static_cast<int8_t>(final_qp);
+                qp_map[i*map_width*2+j] = static_cast<int8_t>(final_qp);
                 //qp_buf<< ", "<<final_qp;
             }
             //qp_buf<<std::endl;
