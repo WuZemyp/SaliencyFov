@@ -790,6 +790,8 @@ void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint
     << ", " << m_leftY
     << ", " << m_rightX
     << ", " << m_rightY
+    << ", " << m_nWidth
+    << ", " << m_nHeight
     << ", " << map_width
     << ", " << map_height << std::endl;
 }

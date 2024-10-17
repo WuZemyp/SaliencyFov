@@ -20,7 +20,7 @@ FrameRender::~FrameRender()
 {
 }
 
-bool FrameRender::Startup()
+bool FrameRender::Startup(float centerShiftX, float centerShiftY)
 {
 	if (m_pStagingTexture) {
 		return true;

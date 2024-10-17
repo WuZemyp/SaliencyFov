@@ -46,7 +46,9 @@ void VideoEncoderNVENC::Initialize()
 	initializeParams.encodeConfig = &encodeConfig;
 
 	FillEncodeConfig(initializeParams, m_refreshRate, m_renderWidth, m_renderHeight, m_bitrateInMBits * 1'000'000L);
-	   
+	
+	Info("m_renderWidth: %d\n", m_renderWidth);
+	 
 	try {
 		m_NvNecoder->CreateEncoder(&initializeParams);
 	} 
@@ -304,9 +306,9 @@ void VideoEncoderNVENC::FillEncodeConfig(NV_ENC_INITIALIZE_PARAMS &initializePar
 		encodeConfig.rcParams.averageBitRate = Settings::Instance().m_nvencRcAverageBitrate;
 	}
 
-	encodeConfig.rcParams.qpMapMode = NV_ENC_QP_MAP_DELTA;
-	encodeConfig.rcParams.enableAQ = 0;
-	encodeConfig.rcParams.enableTemporalAQ = 0;
-	encodeConfig.rcParams.rateControlMode = NV_ENC_PARAMS_RC_CONSTQP;
-	encodeConfig.rcParams.constQP = {23,23,23};//x264 crf mode default value
+	// encodeConfig.rcParams.qpMapMode = NV_ENC_QP_MAP_DELTA;
+	// encodeConfig.rcParams.enableAQ = 0;
+	// encodeConfig.rcParams.enableTemporalAQ = 0;
+	// encodeConfig.rcParams.rateControlMode = NV_ENC_PARAMS_RC_CONSTQP;
+	// encodeConfig.rcParams.constQP = {23,23,23};//x264 crf mode default value
 }

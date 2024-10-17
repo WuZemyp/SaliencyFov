@@ -4,6 +4,10 @@
 		CEncoder::CEncoder()
 			: m_bExiting(false)
 			, m_targetTimestampNs(0)
+			, m_gaze_location_leftx(1072)
+			, m_gaze_location_lefty(1168)
+			, m_gaze_location_rightx(3216)
+			, m_gaze_location_righty(1168)
 		{
 			m_encodeFinished.Set();
 		}
@@ -80,8 +84,14 @@
 		{
 			m_presentationTime = presentationTime;
 			m_targetTimestampNs = targetTimestampNs;
-			m_FrameRender->Startup();
-
+			m_gaze_location_leftx = int(GetEyeGazeLocationLeftX());
+			m_gaze_location_lefty = int(2336-GetEyeGazeLocationLeftY());
+			m_gaze_location_rightx = int(GetEyeGazeLocationRightX());
+			m_gaze_location_righty = int(2336-GetEyeGazeLocationRightY());
+			float centerShiftX = static_cast<float>(m_gaze_location_leftx) / 2144.0;
+			float centerShiftY = static_cast<float>(m_gaze_location_lefty) / 2366.0;
+			m_FrameRender->Startup(centerShiftX, centerShiftY);
+			//Info("starup called for : %d\n",targetTimestampNs);
 			m_FrameRender->RenderFrame(pTexture, bounds, layerCount, recentering, message, debugText);
 			return true;
 		}

@@ -47,7 +47,7 @@ public:
 	FrameRender(std::shared_ptr<CD3DRender> pD3DRender);
 	virtual ~FrameRender();
 
-	bool Startup();
+	bool Startup(float centerShiftX = 0.4, float centerShiftY = 0.1);
 	bool RenderFrame(ID3D11Texture2D *pTexture[][2], vr::VRTextureBounds_t bounds[][2], int layerCount, bool recentering, const std::string& message, const std::string& debugText);
 	void GetEncodingResolution(uint32_t *width, uint32_t *height);
 

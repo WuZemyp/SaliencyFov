@@ -64,5 +64,10 @@
 		std::shared_ptr<FrameRender> m_FrameRender;
 
 		IDRScheduler m_scheduler;
+
+		int m_gaze_location_leftx;
+		int m_gaze_location_lefty;
+		int m_gaze_location_rightx;
+		int m_gaze_location_righty;
 	};
 

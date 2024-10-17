@@ -4,7 +4,7 @@
 #include "alvr_server/Utils.h"
 #include "alvr_server/bindings.h"
 #include <fstream>
-
+#include <chrono>
 using Microsoft::WRL::ComPtr;
 using namespace d3d_render_utils;
 
@@ -27,41 +27,41 @@ namespace {
 		float edgeRatioY;
 	};
 
-	FoveationVars CalculateFoveationVars() {
-		float targetEyeWidth = (float)Settings::Instance().m_renderWidth / 2;
-		float targetEyeHeight = (float)Settings::Instance().m_renderHeight;
+	FoveationVars CalculateFoveationVars(float centerShiftX_input = 0.4, float centerShiftY_input = 0.1) {
+		float targetEyeWidth = (float)Settings::Instance().m_renderWidth / 2;//2144
+		float targetEyeHeight = (float)Settings::Instance().m_renderHeight;//2336
 
-		float centerSizeX = (float)Settings::Instance().m_foveationCenterSizeX;
-		float centerSizeY = (float)Settings::Instance().m_foveationCenterSizeY;
-		float centerShiftX = (float)Settings::Instance().m_foveationCenterShiftX;
-		float centerShiftY = (float)Settings::Instance().m_foveationCenterShiftY;
-		float edgeRatioX = (float)Settings::Instance().m_foveationEdgeRatioX;
-		float edgeRatioY = (float)Settings::Instance().m_foveationEdgeRatioY;
+		float centerSizeX = (float)Settings::Instance().m_foveationCenterSizeX;//0.45
+		float centerSizeY = (float)Settings::Instance().m_foveationCenterSizeY;//0.4
+		float centerShiftX = centerShiftX_input;//(float)Settings::Instance().m_foveationCenterShiftX;//0.4
+		float centerShiftY = centerShiftY_input;//(float)Settings::Instance().m_foveationCenterShiftY;//0.1
+		float edgeRatioX = (float)Settings::Instance().m_foveationEdgeRatioX;//4.0
+		float edgeRatioY = (float)Settings::Instance().m_foveationEdgeRatioY;//5.0
 
-		float edgeSizeX = targetEyeWidth-centerSizeX*targetEyeWidth;
-		float edgeSizeY = targetEyeHeight-centerSizeY*targetEyeHeight;
+		float edgeSizeX = targetEyeWidth-centerSizeX*targetEyeWidth;//1179.2
+		float edgeSizeY = targetEyeHeight-centerSizeY*targetEyeHeight;//1401.6
 
-		float centerSizeXAligned = 1.-ceil(edgeSizeX/(edgeRatioX*2.))*(edgeRatioX*2.)/targetEyeWidth;
-		float centerSizeYAligned = 1.-ceil(edgeSizeY/(edgeRatioY*2.))*(edgeRatioY*2.)/targetEyeHeight;
+		float centerSizeXAligned = 1.-ceil(edgeSizeX/(edgeRatioX*2.))*(edgeRatioX*2.)/targetEyeWidth;//0.447761194
+		float centerSizeYAligned = 1.-ceil(edgeSizeY/(edgeRatioY*2.))*(edgeRatioY*2.)/targetEyeHeight;//0.3964041096
 
-		float edgeSizeXAligned = targetEyeWidth-centerSizeXAligned*targetEyeWidth;
-		float edgeSizeYAligned = targetEyeHeight-centerSizeYAligned*targetEyeHeight;
+		float edgeSizeXAligned = targetEyeWidth-centerSizeXAligned*targetEyeWidth;//1184
+		float edgeSizeYAligned = targetEyeHeight-centerSizeYAligned*targetEyeHeight;//1410
 
-		float centerShiftXAligned = ceil(centerShiftX*edgeSizeXAligned/(edgeRatioX*2.))*(edgeRatioX*2.)/edgeSizeXAligned;
-		float centerShiftYAligned = ceil(centerShiftY*edgeSizeYAligned/(edgeRatioY*2.))*(edgeRatioY*2.)/edgeSizeYAligned;
+		float centerShiftXAligned = ceil(centerShiftX*edgeSizeXAligned/(edgeRatioX*2.))*(edgeRatioX*2.)/edgeSizeXAligned;//0.4054054054
+		float centerShiftYAligned = ceil(centerShiftY*edgeSizeYAligned/(edgeRatioY*2.))*(edgeRatioY*2.)/edgeSizeYAligned;//0.1063829787
 
-		float foveationScaleX = (centerSizeXAligned+(1.-centerSizeXAligned)/edgeRatioX);
-		float foveationScaleY = (centerSizeYAligned+(1.-centerSizeYAligned)/edgeRatioY);
+		float foveationScaleX = (centerSizeXAligned+(1.-centerSizeXAligned)/edgeRatioX);//0.5858208955
+		float foveationScaleY = (centerSizeYAligned+(1.-centerSizeYAligned)/edgeRatioY);//0.5171232877
 
-		float optimizedEyeWidth = foveationScaleX*targetEyeWidth;
-		float optimizedEyeHeight = foveationScaleY*targetEyeHeight;
+		float optimizedEyeWidth = foveationScaleX*targetEyeWidth;//1256
+		float optimizedEyeHeight = foveationScaleY*targetEyeHeight;//1208
 
 		// round the frame dimensions to a number of pixel multiple of 32 for the encoder
-		auto optimizedEyeWidthAligned = (uint32_t)ceil(optimizedEyeWidth / 32.f) * 32;
-		auto optimizedEyeHeightAligned = (uint32_t)ceil(optimizedEyeHeight / 32.f) * 32;
+		auto optimizedEyeWidthAligned = (uint32_t)ceil(optimizedEyeWidth / 32.f) * 32;//1280
+		auto optimizedEyeHeightAligned = (uint32_t)ceil(optimizedEyeHeight / 32.f) * 32;//1216
 
-		float eyeWidthRatioAligned = optimizedEyeWidth/optimizedEyeWidthAligned;
-		float eyeHeightRatioAligned = optimizedEyeHeight/optimizedEyeHeightAligned;
+		float eyeWidthRatioAligned = optimizedEyeWidth/optimizedEyeWidthAligned;//0.98125
+		float eyeHeightRatioAligned = optimizedEyeHeight/optimizedEyeHeightAligned;//0.9934210526
 
 		return { (uint32_t)targetEyeWidth, (uint32_t)targetEyeHeight, optimizedEyeWidthAligned, optimizedEyeHeightAligned,
 			eyeWidthRatioAligned, eyeHeightRatioAligned,
@@ -78,8 +78,13 @@ void FFR::GetOptimizedResolution(uint32_t* width, uint32_t* height) {
 
 FFR::FFR(ID3D11Device* device) : mDevice(device) {}
 
-void FFR::Initialize(ID3D11Texture2D* compositionTexture) {
-	auto fovVars = CalculateFoveationVars();
+void FFR::Initialize(ID3D11Texture2D* compositionTexture, float centerShiftX, float centerShiftY) {
+	auto now = std::chrono::system_clock::now();
+
+    // Convert to milliseconds since epoch
+    auto milliseconds_since_epoch = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+
+	auto fovVars = CalculateFoveationVars(centerShiftX, centerShiftY);
 	std::ofstream testOut("fovVar.txt", std::ios::app);
 	testOut << "targetEyeWidth" << fovVars.targetEyeWidth << std::endl;
 	testOut << "targetEyeHeight" << fovVars.targetEyeHeight << std::endl;
@@ -114,6 +119,11 @@ void FFR::Initialize(ID3D11Texture2D* compositionTexture) {
 	} else {
 		mOptimizedTexture = compositionTexture;
 	}
+	auto now1 = std::chrono::system_clock::now();
+
+    // Convert to milliseconds since epoch
+    auto milliseconds_since_epoch1 = std::chrono::duration_cast<std::chrono::milliseconds>(now1.time_since_epoch()).count();
+	testOut << "computation time in ms: " << (milliseconds_since_epoch1-milliseconds_since_epoch) << std::endl;
 }
 
 void FFR::Render() {
