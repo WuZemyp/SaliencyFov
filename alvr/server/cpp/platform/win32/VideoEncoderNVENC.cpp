@@ -97,6 +97,8 @@ void VideoEncoderNVENC::Transmit(ID3D11Texture2D *pTexture, uint64_t presentatio
 	int lefty=int(2336-GetEyeGazeLocationLeftY());
 	int rightx=int(GetEyeGazeLocationRightX());
 	int righty=int(2336-GetEyeGazeLocationRightY());
+	float centerShiftX = static_cast<float>(leftx) / 2144.0f;
+	float centerShiftY = static_cast<float>(lefty) / 2366.0f;
 	// leftx=1072;
 	// lefty=1168;
 	// rightx=1072+2144;
@@ -138,7 +140,7 @@ void VideoEncoderNVENC::Transmit(ID3D11Texture2D *pTexture, uint64_t presentatio
 			fpOut.write(reinterpret_cast<char*>(packet.data()), packet.size());
 		}
 		
-		ParseFrameNals(m_codec, packet.data(), (int)packet.size(), targetTimestampNs, insertIDR);
+		ParseFrameNals(m_codec, packet.data(), (int)packet.size(), targetTimestampNs, insertIDR, centerShiftX, centerShiftY);
 	}
 }
 

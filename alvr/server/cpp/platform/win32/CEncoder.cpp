@@ -91,7 +91,7 @@
 			float centerShiftX = static_cast<float>(m_gaze_location_leftx) / 2144.0;
 			float centerShiftY = static_cast<float>(m_gaze_location_lefty) / 2366.0;
 			m_FrameRender->Startup(centerShiftX, centerShiftY);
-			//Info("starup called for : %d\n",targetTimestampNs);
+			Info("starup called for : %d centershiftX is : %d centershiftY : %d\n",targetTimestampNs,centerShiftX, centerShiftY);
 			m_FrameRender->RenderFrame(pTexture, bounds, layerCount, recentering, message, debugText);
 			return true;
 		}

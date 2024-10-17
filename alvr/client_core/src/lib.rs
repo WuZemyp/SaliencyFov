@@ -48,7 +48,7 @@ use storage::Config;
 
 static LIFECYCLE_STATE: RwLock<LifecycleState> = RwLock::new(LifecycleState::StartingUp);
 
-static STATISTICS_MANAGER: OptLazy<StatisticsManager> = alvr_common::lazy_mut_none();
+pub static STATISTICS_MANAGER: OptLazy<StatisticsManager> = alvr_common::lazy_mut_none();
 
 static EVENT_QUEUE: Lazy<Mutex<VecDeque<ClientCoreEvent>>> =
     Lazy::new(|| Mutex::new(VecDeque::new()));

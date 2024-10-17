@@ -25,6 +25,7 @@ use std::{
     time::{Duration, Instant},
 };
 
+
 // When the latency goes too high, if prediction offset is not capped tracking poll will fail.
 const MAX_PREDICTION: Duration = Duration::from_millis(70);
 const IPD_CHANGE_EPS: f32 = 0.001;
@@ -979,10 +980,19 @@ pub fn entry_point() {
                 context.swapchains[1]
                     .wait_image(xr::Duration::INFINITE)
                     .unwrap();
+                let mut centerShiftX = 0.4 as f32;
+                let mut centerShiftY = 0.1 as f32;
 
+                if let Some(stats_try) = &mut *alvr_client_core::STATISTICS_MANAGER.lock() {
+                    let (x,y) = stats_try.get_frame_fr_shift(timestamp);
+                    centerShiftX = x;
+                    centerShiftY = y;
+                }
                 alvr_client_core::opengl::render_stream(
                     hardware_buffer,
                     [left_swapchain_idx, right_swapchain_idx],
+                    centerShiftX,
+                    centerShiftY,
                 );
 
                 context.swapchains[0].release_image().unwrap();

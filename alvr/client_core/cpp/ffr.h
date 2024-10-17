@@ -45,6 +45,8 @@ public:
 
     gl_render_utils::Texture *GetOutputTexture() { return mExpandedTexture.get(); }
 
+    void Reinit(float centerShiftX, float centerShiftY);
+
 private:
 
     gl_render_utils::Texture *mInputSurface;

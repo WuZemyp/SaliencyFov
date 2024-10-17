@@ -12,6 +12,8 @@ struct HistoryFrame {
     input_acquired: Instant,
     video_packet_received: Instant,
     client_stats: ClientStatistics,
+    centerShiftX: f32,
+    centerShiftY: f32,
 }
 
 pub struct StatisticsManager {
@@ -56,6 +58,8 @@ impl StatisticsManager {
                     target_timestamp,
                     ..Default::default()
                 },
+                centerShiftX: 0.4 as f32,
+                centerShiftY: 0.1 as f32,
             });
         }
 
@@ -73,6 +77,29 @@ impl StatisticsManager {
             frame.video_packet_received = Instant::now();
             frame.client_stats.frame_arrival_timestamp=Utc::now().timestamp_micros();
         }
+    }
+    pub fn report_frame_fr_shift(&mut self, target_timestamp: Duration, centerShiftX: f32, centerShiftY: f32) {
+        if let Some(frame) = self
+            .history_buffer
+            .iter_mut()
+            .find(|frame| frame.client_stats.target_timestamp == target_timestamp)
+        {
+            frame.centerShiftX = centerShiftX;
+            frame.centerShiftY = centerShiftY;
+        }
+    }
+    pub fn get_frame_fr_shift(&mut self, target_timestamp: Duration) -> (f32,f32){
+        let mut x = 0.4 as f32;
+        let mut y = 0.1 as f32;
+        if let Some(frame) = self
+            .history_buffer
+            .iter_mut()
+            .find(|frame| frame.client_stats.target_timestamp == target_timestamp)
+        {
+            x = frame.centerShiftX;
+            y= frame.centerShiftY;
+        }
+        (x,y)
     }
 
     pub fn report_frame_decoded(&mut self, target_timestamp: Duration) {

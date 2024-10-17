@@ -869,7 +869,7 @@ void renderLobbyNative(const FfiViewInput eyeInputs[2]) {
     ovrRenderer_RenderFrame(g_ctx.lobbyRenderer.get(), eyeInputs, true);
 }
 
-void renderStreamNative(void *streamHardwareBuffer, const unsigned int swapchainIndices[2]) {
+void renderStreamNative(void *streamHardwareBuffer, const unsigned int swapchainIndices[2], float centerShiftX, float centerShiftY) {
     auto renderer = g_ctx.streamRenderer.get();
 
     if (streamHardwareBuffer != 0) {
@@ -883,6 +883,7 @@ void renderStreamNative(void *streamHardwareBuffer, const unsigned int swapchain
 
         renderer->srgbCorrectionPass->Render();
         if (renderer->enableFFE) {
+            renderer->ffr->Reinit(centerShiftX,centerShiftY);
             renderer->ffr->Render();
         }
 

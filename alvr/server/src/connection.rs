@@ -1364,7 +1364,7 @@ fn connection_pipeline(
     Ok(())
 }
 
-pub extern "C" fn send_video(timestamp_ns: u64, buffer_ptr: *mut u8, len: i32, is_idr: bool) {
+pub extern "C" fn send_video(timestamp_ns: u64, buffer_ptr: *mut u8, len: i32, is_idr: bool, centerShiftX: f32, centerShiftY: f32) {
     // start in the corrupts state, the client didn't receive the initial IDR yet.
     static STREAM_CORRUPTED: AtomicBool = AtomicBool::new(true);
     static LAST_IDR_INSTANT: Lazy<Mutex<Instant>> = Lazy::new(|| Mutex::new(Instant::now()));
@@ -1418,7 +1418,7 @@ pub extern "C" fn send_video(timestamp_ns: u64, buffer_ptr: *mut u8, len: i32, i
 
             if matches!(
                 sender.try_send(VideoPacket {
-                    header: VideoPacketHeader { timestamp, is_idr },
+                    header: VideoPacketHeader { timestamp, is_idr, centerShiftX, centerShiftY},
                     payload,
                 }),
                 Err(TrySendError::Full(_))

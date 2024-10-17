@@ -301,6 +301,7 @@ fn connection_pipeline(
 
             if let Some(stats) = &mut *STATISTICS_MANAGER.lock() {
                 stats.report_video_packet_received(header.timestamp);
+                stats.report_frame_fr_shift(header.timestamp, header.centerShiftX, header.centerShiftY);
             }
 
             if header.is_idr {

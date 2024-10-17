@@ -152,16 +152,47 @@ void FFR::Initialize(FoveationVars fv) {
                                             fv.centerShiftY,
                                             fv.edgeRatioX,
                                             fv.edgeRatioY);
-    std::ofstream testOut("/sdcard/Android/data/alvr.client/files/fovVar.txt", std::ios::app);
-    testOut << ffrCommonShaderStr << std::endl;
+    
 
     mExpandedTexture.reset(new Texture(false, 0, false, fv.targetEyeWidth * 2, fv.targetEyeHeight));
     mExpandedTextureState = make_unique<RenderState>(mExpandedTexture.get());
 
     auto decompressAxisAlignedShaderStr =
-        ffrCommonShaderStr + DECOMPRESS_AXIS_ALIGNED_FRAGMENT_SHADER;
+        ffrCommonShaderStr + DECOMPRESS_AXIS_ALIGNED_FRAGMENT_SHADER;// new init in dynamic foveat render
     mDecompressAxisAlignedPipeline = unique_ptr<RenderPipeline>(
-        new RenderPipeline({mInputSurface}, QUAD_2D_VERTEX_SHADER, decompressAxisAlignedShaderStr));
+        new RenderPipeline({mInputSurface}, QUAD_2D_VERTEX_SHADER, decompressAxisAlignedShaderStr));// new init in dynamic foveat render
+}
+
+void FFR::Reinit(float centerShiftX, float centerShiftY){
+    FFRData data_reinit = {(bool)true,
+                        2144,
+                        2336,
+                        0.45f,
+                        0.4f,
+                        centerShiftX,
+                        centerShiftY,
+                        4.0f,
+                        5.0f};
+    FoveationVars fv = CalculateFoveationVars(data_reinit);
+    auto ffrCommonShaderStr = string_format(FFR_COMMON_SHADER_FORMAT,
+                                            fv.targetEyeWidth,
+                                            fv.targetEyeHeight,
+                                            fv.optimizedEyeWidth,
+                                            fv.optimizedEyeHeight,
+                                            fv.eyeWidthRatio,
+                                            fv.eyeHeightRatio,
+                                            fv.centerSizeX,
+                                            fv.centerSizeY,
+                                            fv.centerShiftX,
+                                            fv.centerShiftY,
+                                            fv.edgeRatioX,
+                                            fv.edgeRatioY);
+    // std::ofstream testOut("/sdcard/Android/data/alvr.client/files/fovVar.txt", std::ios::app);
+    // testOut <<<<"," <<centerShiftX<<","<< centerShiftY<< std::endl;
+    auto decompressAxisAlignedShaderStr =
+        ffrCommonShaderStr + DECOMPRESS_AXIS_ALIGNED_FRAGMENT_SHADER;// new init in dynamic foveat render
+    mDecompressAxisAlignedPipeline = unique_ptr<RenderPipeline>(
+        new RenderPipeline({mInputSurface}, QUAD_2D_VERTEX_SHADER, decompressAxisAlignedShaderStr));// new init in dynamic foveat render
 }
 
 void FFR::Render() const {

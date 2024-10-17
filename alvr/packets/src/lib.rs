@@ -113,6 +113,8 @@ pub struct FaceData {
 pub struct VideoPacketHeader {
     pub timestamp: Duration,
     pub is_idr: bool,
+    pub centerShiftX: f32,
+    pub centerShiftY: f32,
 }
 
 // Note: face_data does not respect target_timestamp.

@@ -588,5 +588,7 @@ pub unsafe extern "C" fn alvr_render_stream_opengl(
     opengl::render_stream(
         hardware_buffer,
         [*swapchain_indices, *swapchain_indices.offset(1)],
+        0.4 as f32,
+        0.1 as f32,
     );
 }
