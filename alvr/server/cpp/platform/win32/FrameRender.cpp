@@ -307,7 +307,7 @@ bool FrameRender::Startup(float centerShiftX, float centerShiftY)
 	enableFFE = Settings::Instance().m_enableFoveatedEncoding;
 	if (enableFFE) {
 		m_ffr = std::make_unique<FFR>(m_pD3DRender->GetDevice());
-		m_ffr->Initialize(m_pStagingTexture.Get());
+		m_ffr->Initialize(m_pStagingTexture.Get(), centerShiftX, centerShiftY);
 		m_pCheckingTexture = m_pStagingTexture.Get();
 
 		m_pStagingTexture = m_ffr->GetOutputTexture();
