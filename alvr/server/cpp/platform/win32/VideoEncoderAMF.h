@@ -62,7 +62,7 @@ public:
 	void Initialize();
 	void Shutdown();
 
-	void Transmit(ID3D11Texture2D *pTexture, uint64_t presentationTime, uint64_t targetTimestampNs, bool insertIDR);
+	void Transmit(ID3D11Texture2D *pTexture, uint64_t presentationTime, uint64_t targetTimestampNs, bool insertIDR, int leftx = 1072, int lefty = 1168, int rightx = 3216, int righty = 1168);
 	void Receive(AMFDataPtr data);
 private:	
 	static const wchar_t *START_TIME_PROPERTY;

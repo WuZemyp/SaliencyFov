@@ -117,7 +117,7 @@ void VideoEncoderSW::Shutdown() {
 	Debug("Successfully shutdown VideoEncoderSW.\n");
 }
 
-void VideoEncoderSW::Transmit(ID3D11Texture2D *pTexture, uint64_t presentationTime, uint64_t targetTimestampNs, bool insertIDR) {
+void VideoEncoderSW::Transmit(ID3D11Texture2D *pTexture, uint64_t presentationTime, uint64_t targetTimestampNs, bool insertIDR, int leftxIn, int leftyIn, int rightxIn, int rightyIn) {
 	// Handle bitrate changes
 	auto params = GetDynamicEncoderParams();
 	if (params.updated) {
