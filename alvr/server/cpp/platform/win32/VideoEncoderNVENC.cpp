@@ -86,17 +86,21 @@ void VideoEncoderNVENC::Shutdown()
 	}
 }
 
-void VideoEncoderNVENC::Transmit(ID3D11Texture2D *pTexture, uint64_t presentationTime, uint64_t targetTimestampNs, bool insertIDR)
+void VideoEncoderNVENC::Transmit(ID3D11Texture2D *pTexture, uint64_t presentationTime, uint64_t targetTimestampNs, bool insertIDR, int leftxIn, int leftyIn, int rightxIn, int rightyIn)
 {
 	auto params = GetDynamicEncoderParams();
 	// int leftxfromrust=int(GetEyeGazeLocationLeftX());
 	// int leftyfromrust=int(GetEyeGazeLocationLeftY());
 	// int rightxfromrust=int(GetEyeGazeLocationRightX());
 	// int rightyfromrust=int(GetEyeGazeLocationRightY());
-	int leftx=int(GetEyeGazeLocationLeftX());
-	int lefty=int(2336-GetEyeGazeLocationLeftY());
-	int rightx=int(GetEyeGazeLocationRightX());
-	int righty=int(2336-GetEyeGazeLocationRightY());
+	// int leftx=int(GetEyeGazeLocationLeftX());
+	// int lefty=int(2336-GetEyeGazeLocationLeftY());
+	// int rightx=int(GetEyeGazeLocationRightX());
+	// int righty=int(2336-GetEyeGazeLocationRightY());
+	int leftx = leftxIn;
+	int lefty = leftyIn;
+	int rightx = rightxIn;
+	int righty = rightyIn;
 	float centerShiftX = static_cast<float>(leftx) / 2144.0f;
 	float centerShiftY = static_cast<float>(lefty) / 2366.0f;
 	// leftx=1072;
