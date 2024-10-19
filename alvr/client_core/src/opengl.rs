@@ -190,6 +190,6 @@ pub fn render_lobby(view_inputs: [RenderViewInput; 2]) {
 pub fn render_stream(hardware_buffer: *mut std::ffi::c_void, swapchain_indices: [u32; 2], centerShiftX: f32, centerShiftY: f32) {
     #[cfg(target_os = "android")]
     unsafe {
-        renderStreamNative(hardware_buffer, swapchain_indices.as_ptr(), centerShiftX as _, centerShiftX as _);
+        renderStreamNative(hardware_buffer, swapchain_indices.as_ptr(), centerShiftX as _, centerShiftY as _);
     }
 }
