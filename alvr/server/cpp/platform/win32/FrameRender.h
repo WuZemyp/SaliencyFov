@@ -50,6 +50,7 @@ public:
 	bool Startup(float centerShiftX = 0.4, float centerShiftY = 0.1);
 	bool RenderFrame(ID3D11Texture2D *pTexture[][2], vr::VRTextureBounds_t bounds[][2], int layerCount, bool recentering, const std::string& message, const std::string& debugText);
 	void GetEncodingResolution(uint32_t *width, uint32_t *height);
+	void Reinit_ffr(float centerShiftX, float centerShiftY);
 
 	ComPtr<ID3D11Texture2D> GetTexture(bool saving, uint64_t m_targetTimestampNs);
 private:

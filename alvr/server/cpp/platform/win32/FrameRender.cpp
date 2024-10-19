@@ -318,6 +318,14 @@ bool FrameRender::Startup(float centerShiftX, float centerShiftY)
 	return true;
 }
 
+void FrameRender::Reinit_ffr(float centerShiftX, float centerShiftY)
+{
+	m_ffr->Initialize(m_pStagingTexture.Get(), centerShiftX,centerShiftY);
+	m_pCheckingTexture = m_pStagingTexture.Get();
+	m_pStagingTexture = m_ffr->GetOutputTexture();
+	return;
+}
+
 
 bool FrameRender::RenderFrame(ID3D11Texture2D *pTexture[][2], vr::VRTextureBounds_t bounds[][2], int layerCount, bool recentering, const std::string &message, const std::string& debugText)
 {
