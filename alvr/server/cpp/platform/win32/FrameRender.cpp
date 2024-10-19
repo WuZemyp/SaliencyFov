@@ -320,7 +320,7 @@ bool FrameRender::Startup(float centerShiftX, float centerShiftY)
 
 void FrameRender::Reinit_ffr(float centerShiftX, float centerShiftY)
 {
-	m_ffr->Initialize(m_pStagingTexture.Get(), centerShiftX,centerShiftY);
+	m_ffr->Reinit(centerShiftX,centerShiftY);
 	m_pCheckingTexture = m_pStagingTexture.Get();
 	m_pStagingTexture = m_ffr->GetOutputTexture();
 	return;

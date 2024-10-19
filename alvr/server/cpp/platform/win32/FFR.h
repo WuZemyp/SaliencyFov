@@ -10,6 +10,7 @@ public:
 	void Render();
 	void GetOptimizedResolution(uint32_t* width, uint32_t* height);
 	ID3D11Texture2D* GetOutputTexture();
+	void Reinit(float centerShiftX, float centerShiftY);
 
 private:
 	Microsoft::WRL::ComPtr<ID3D11Device> mDevice;
@@ -17,5 +18,7 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11VertexShader> mQuadVertexShader;
 
 	std::vector<d3d_render_utils::RenderPipeline> mPipelines;
+
+	ID3D11Texture2D* m_compositionTexture;
 };
 
