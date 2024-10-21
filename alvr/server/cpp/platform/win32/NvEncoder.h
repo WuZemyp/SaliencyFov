@@ -422,6 +422,7 @@ private:
     int decompress_y(int y);
     int compress_x(int x);
     int compress_y(int y);
+    void Update_decompress_params(float centerShiftX, float centerShiftY);
 
 protected:
     bool m_bMotionEstimationOnly = false;
@@ -468,24 +469,24 @@ private:
     int m_leftY=-1;
     int m_rightX=-1;
     int m_rightY=-1;
-    float c0_x = 0.2761195;
+    float c0_x = 0.2761195;//no change
     float c1_x = 0.2910448;
-    float c2_x = 2.343283;
+    float c2_x = 2.343283;//no change
     float lo_bound_x = 0.38805974;
     float hi_bound_x = 0.83582073;
     float loBoundC_x = 0.16560516;
     float hiBoundC_x = 0.92993623;
-    float edge_ratio_x = 4.0;
-    float eye_size_ratio_x = 0.98125;
-    float c0_y = 0.301798;
+    float edge_ratio_x = 4.0;//no change
+    float eye_size_ratio_x = 0.98125;//no change
+    float c0_y = 0.301798;//no change
     float c1_y = 0.26771233;
-    float c2_y = 2.585616;
+    float c2_y = 2.585616;//no change
     float lo_bound_y = 0.33390415;
     float hi_bound_y = 0.7303082;
     float loBoundC_y = 0.12913911;
     float hiBoundC_y = 0.8956953;
-    float edge_ratio_y = 5.0;
-    float eye_size_ratio_y = 0.993421;
+    float edge_ratio_y = 5.0;//no change
+    float eye_size_ratio_y = 0.993421;//no change
     bool checkFrameType = true;
     std::fstream e_buf;
     std::fstream qp_buf;

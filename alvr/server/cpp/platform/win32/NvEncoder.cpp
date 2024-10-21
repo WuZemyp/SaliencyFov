@@ -560,6 +560,20 @@ float Eye2Texturex(float eye_x, bool is_right){
   return eye_x * 0.5 + float(is_right) * (1.0 - eye_x);
 }
 
+void NvEncoder::Update_decompress_params(float centerShiftXAligned, float centerShiftYAligned)
+{
+    c1_x = (edge_ratio_x - 1.) * c0_x * (centerShiftXAligned + 1.) / edge_ratio_x;
+    c1_y = (edge_ratio_y - 1.) * c0_y * (centerShiftYAligned + 1.) / edge_ratio_y;
+    lo_bound_x = c0_x * (centerShiftXAligned + 1.);
+    lo_bound_y = c0_y * (centerShiftYAligned + 1.);
+    hi_bound_x = c0_x * (centerShiftXAligned - 1.) + 1.;
+    hi_bound_y = c0_y * (centerShiftYAligned - 1.) + 1.;
+    loBoundC_x = c0_x * (centerShiftXAligned + 1.) / c2_x;
+    loBoundC_y = c0_y * (centerShiftYAligned + 1.) / c2_y;
+    hiBoundC_x = c0_x * (centerShiftXAligned - 1.) / c2_x + 1.;
+    hiBoundC_y = c0_y * (centerShiftYAligned - 1.) / c2_y + 1.; 
+}
+
 int NvEncoder::decompress_x(int x){
     float f_x = float(x)/(2144*2);
     bool is_right = (f_x>0.5);
@@ -730,6 +744,12 @@ void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint
     //     r1 = 18;
     //     r2 = 47 -r1;
     // }
+    float centerShiftX = static_cast<float>(leftX) / 2144.0;
+	float centerShiftY = static_cast<float>(leftY) / 2366.0;
+    float centerShiftXAligned = ceil(centerShiftX*1184./(4.0*2.))*(4.0*2.)/1184.;
+    float centerShiftYAligned = ceil(centerShiftY*1410./(5.0*2.))*(5.0*2.)/1410.;
+    Update_decompress_params(centerShiftXAligned,centerShiftYAligned);
+
     int r_leftX = (decompress_x(leftX)+15)/16;
     int r_leftY = (decompress_y(leftY)+15)/16;
     int r_rightX = (decompress_x(rightX)+15)/16;//-map_width
