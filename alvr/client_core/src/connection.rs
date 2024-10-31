@@ -301,7 +301,7 @@ fn connection_pipeline(
             let arrival_timestamp = Utc::now().timestamp_micros();
             if let Some(stats) = &mut *STATISTICS_MANAGER.lock() {
                 stats.report_video_packet_received(header.timestamp,arrival_timestamp);
-                stats.report_frame_fr_shift(header.timestamp, header.centerShiftX, header.centerShiftY);
+                //stats.report_frame_fr_shift(header.timestamp, header.centerShiftX, header.centerShiftY);
             }
 
             if header.is_idr {
@@ -315,6 +315,10 @@ fn connection_pipeline(
             }
 
             if !stream_corrupted || !settings.connection.avoid_video_glitching {
+                if let Some(stats) = &mut *STATISTICS_MANAGER.lock() {
+                    //stats.report_video_packet_received(header.timestamp,arrival_timestamp);
+                    stats.report_frame_fr_shift(header.timestamp, header.centerShiftX, header.centerShiftY);
+                }
                 if !decoder::push_nal(header.timestamp, nal) {
                     stream_corrupted = true;
                     if let Some(sender) = &mut *CONTROL_SENDER.lock() {
