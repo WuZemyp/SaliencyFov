@@ -11,7 +11,7 @@ mod sockets;
 mod statistics;
 mod tracking;
 mod web_server;
-
+mod congestion_controller;
 #[allow(
     non_camel_case_types,
     non_upper_case_globals,
@@ -55,6 +55,7 @@ use sysinfo::{ProcessRefreshKind, RefreshKind, SystemExt};
 use tokio::{runtime::Runtime, sync::broadcast};
 use lazy_static::lazy_static;
 use std::os::raw::c_float;
+use congestion_controller::EyeNexus_Controller;
 pub static LIFECYCLE_STATE: RwLock<LifecycleState> = RwLock::new(LifecycleState::StartingUp);
 pub static IS_RESTARTING: RelaxedAtomic = RelaxedAtomic::new(false);
 static CONNECTION_THREAD: RwLock<Option<JoinHandle<()>>> = RwLock::new(None);
@@ -74,7 +75,7 @@ static BITRATE_MANAGER: Lazy<Mutex<BitrateManager>> =
 lazy_static! {
         pub static ref EYE_GAZE_DATA: stdMutex<[f64; 4]> = stdMutex::new([1072.0, 1168.0, 3216.0, 1168.0]);
 }
-
+static EYENEXUS_MANAGER:Lazy<Mutex<EyeNexus_Controller>> = Lazy::new(|| Mutex::new(EyeNexus_Controller::new()));
 pub struct VideoPacket {
     pub header: VideoPacketHeader,
     pub payload: Vec<u8>,
@@ -430,6 +431,13 @@ pub unsafe extern "C" fn HmdDriverFactory(
         let (left_x,left_y,right_x,right_y)=BITRATE_MANAGER.lock().get_eye_gaze_();
         right_y
     }
+    extern "C" fn get_controller_c() -> i32{
+        let mut c = 188;
+        if let Some(stats_manager) = &mut *STATISTICS_MANAGER.lock() {
+            c = stats_manager.EyeNexus_controller_c;
+        }
+        c
+    } 
 
     extern "C" fn wait_for_vsync() {
         if SERVER_DATA_MANAGER
@@ -477,6 +485,7 @@ pub unsafe extern "C" fn HmdDriverFactory(
     GetEyeGazeLocationLeftY = Some(get_eye_gaze_location_left_y);
     GetEyeGazeLocationRightX = Some(get_eye_gaze_location_right_x);
     GetEyeGazeLocationRightY = Some(get_eye_gaze_location_right_y);
+    GetControllerC = Some(get_controller_c);
 
     WaitForVSync = Some(wait_for_vsync);
     GetEyeGazeData = Some(get_eye_gaze_data);

@@ -700,8 +700,21 @@ int NvEncoder::CalculateQPValue_rightEye(int i, int j){
     int qp = static_cast<double>(this->QO_Max) * (1.0f - exp(-(nominator/denominator)));
     return qp;
 }
+int NvEncoder::EyeNexus_CalculateQPOffsetValue_leftEye(int i, int j, int c){
+    double nominator = (pow((i-m_leftX),2) + pow((j-m_leftY),2));
+    double denominator = 2 * pow(c,2);
+    int qp = this->MAX_QP_OFFSET - (this->MAX_QP_OFFSET*exp(-(nominator/denominator)));
+    return qp;
+}
 
-void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint64_t targetTimestampNs){
+int NvEncoder::EyeNexus_CalculateQPOffsetValue_rightEye(int i, int j, int c){
+    double nominator = (pow((i-m_rightX),2) + pow((j-m_rightY),2));
+    double denominator = 2 * pow(c,2);
+    int qp = this->MAX_QP_OFFSET - (this->MAX_QP_OFFSET*exp(-(nominator/denominator)));
+    return qp;
+}
+
+void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint64_t targetTimestampNs, int controller_c){
     //initialize QPMap
     bool changed = false;
     if(qp_map==nullptr){
@@ -763,18 +776,20 @@ void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint
     //QP1=15;
     //QP2=45
     qp_buf << targetTimestampNs;
+    int c = 188;
+    c = controller_c;
     if(changed){
 
         for(int i = 0; i < map_height; i++){
             for(int j = 0; j < map_width*2; j++){    
 
-                int qp_basedOnLeft = CalculateQPValue_leftEye(j,i);
-                int qp_basedOnRight = CalculateQPValue_rightEye(j,i);
-                int final_qp = (((qp_basedOnLeft) < (qp_basedOnRight)) ? (qp_basedOnLeft) : (qp_basedOnRight));
-                qp_map[i*map_width*2+j] = static_cast<int8_t>(final_qp);
-                //qp_buf<< ", "<<final_qp;
+                int qp_offset_basedOnLeft = EyeNexus_CalculateQPOffsetValue_leftEye(j,i,c);
+                int qp_offset_basedOnRight = EyeNexus_CalculateQPOffsetValue_rightEye(j,i,c);
+                int final_qp_offset = (((qp_offset_basedOnLeft) < (qp_offset_basedOnRight)) ? (qp_offset_basedOnLeft) : (qp_offset_basedOnRight));
+                qp_map[i*map_width*2+j] = static_cast<int8_t>(final_qp_offset);
+                qp_buf<< ", "<<final_qp_offset;
             }
-            //qp_buf<<std::endl;
+            qp_buf<<std::endl;
         }
 
 

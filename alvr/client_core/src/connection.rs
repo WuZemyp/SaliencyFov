@@ -36,7 +36,7 @@ use std::{
     thread,
     time::{Duration, Instant},
 };
-
+use chrono::Utc;
 #[cfg(target_os = "android")]
 use crate::audio;
 #[cfg(not(target_os = "android"))]
@@ -298,9 +298,9 @@ fn connection_pipeline(
             let Ok((header, nal)) = data.get() else {
                 return;
             };
-
+            let arrival_timestamp = Utc::now().timestamp_micros();
             if let Some(stats) = &mut *STATISTICS_MANAGER.lock() {
-                stats.report_video_packet_received(header.timestamp);
+                stats.report_video_packet_received(header.timestamp,arrival_timestamp);
                 stats.report_frame_fr_shift(header.timestamp, header.centerShiftX, header.centerShiftY);
             }
 

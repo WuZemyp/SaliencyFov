@@ -8,7 +8,7 @@ use crate::{
     statistics::StatisticsManager,
     tracking::{self, TrackingManager},
     FfiFov, FfiViewsConfig, VideoPacket, BITRATE_MANAGER, DECODER_CONFIG, LIFECYCLE_STATE,
-    SERVER_DATA_MANAGER, STATISTICS_MANAGER, VIDEO_MIRROR_SENDER, VIDEO_RECORDING_FILE,EYE_GAZE_DATA,
+    SERVER_DATA_MANAGER, STATISTICS_MANAGER, VIDEO_MIRROR_SENDER, VIDEO_RECORDING_FILE,EYE_GAZE_DATA,EYENEXUS_MANAGER,congestion_controller::EyeNexus_Controller,
 };
 use alvr_audio::AudioDevice;
 use alvr_common::{
@@ -56,7 +56,7 @@ use std::{
     thread::{self, JoinHandle},
     time::{Duration, Instant},
 };
-
+use chrono::Utc;
 const RETRY_CONNECT_MIN_INTERVAL: Duration = Duration::from_secs(1);
 const HANDSHAKE_ACTION_TIMEOUT: Duration = Duration::from_secs(2);
 const STREAMING_RECV_TIMEOUT: Duration = Duration::from_millis(500);
@@ -103,6 +103,10 @@ fn create_csv_file_for_statistics(filename: &str) -> Result<(), Box<dyn Error>> 
             "arrival_ts(ms)",
             "server_fps(frame per second)",
             "client_fps(frame per second)",
+            "C",
+            "current_state",
+            "current_action",
+            "experiment_target_timestamp",
         ])?;
     } else {
         println!("File '{}' already exists, skipping creation.", filename);
@@ -628,7 +632,7 @@ fn connection_pipeline(
     ));
 
     *BITRATE_MANAGER.lock() = BitrateManager::new(settings.video.bitrate.history_size, fps);
-
+    *EYENEXUS_MANAGER.lock() = EyeNexus_Controller::new();
     let mut stream_socket = StreamSocketBuilder::connect_to_client(
         HANDSHAKE_ACTION_TIMEOUT,
         client_ip,
@@ -669,9 +673,10 @@ fn connection_pipeline(
                 buffer
                     .get_range_mut(0, payload.len())
                     .copy_from_slice(&payload);
+                let send_timestamp = Utc::now().timestamp_micros();
                 video_sender.send(buffer).ok();//tcp or udp real send out
                 if let Some(stats) = &mut *STATISTICS_MANAGER.lock() {
-                    stats.report_send_timestamp(header.timestamp);
+                    stats.report_send_timestamp(header.timestamp,send_timestamp);
                 }
             }
         }

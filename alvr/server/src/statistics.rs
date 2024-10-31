@@ -10,7 +10,7 @@ use std::fs::OpenOptions;
 use std::error::Error;
 const FULL_REPORT_INTERVAL: Duration = Duration::from_millis(500);
 use chrono::{Utc, TimeZone, Local, format::{strftime, StrftimeItems}};
-
+use crate::{congestion_controller::BandwidthUsage, EYENEXUS_MANAGER};
 pub struct HistoryFrame {
     target_timestamp: Duration,
     tracking_received: Instant,
@@ -49,7 +49,7 @@ struct BatteryData {
     gauge_value: f32,
     is_plugged: bool,
 }
-fn write_latency_to_csv(filename: &str, latency_values: [String; 16]) -> Result<(), Box<dyn Error>> {
+fn write_latency_to_csv(filename: &str, latency_values: [String; 20]) -> Result<(), Box<dyn Error>> {
 
     let mut file = OpenOptions::new().write(true).append(true).open(filename)?;
     let mut writer = Writer::from_writer(file);
@@ -73,10 +73,10 @@ fn write_latency_to_csv(filename: &str, latency_values: [String; 16]) -> Result<
         &latency_values[13],
         &latency_values[14],
         &latency_values[15],
-        // &latency_values[16],
-        // &latency_values[17],
-        // &latency_values[18],
-        // &latency_values[19],
+        &latency_values[16],
+        &latency_values[17],
+        &latency_values[18],
+        &latency_values[19],
         // &latency_values[20],
         // &latency_values[21],
         // &latency_values[22],
@@ -133,6 +133,7 @@ pub struct StatisticsManager {
     last_vsync_time: Instant,
     frame_interval: Duration,
     last_nominal_bitrate_stats: NominalBitrateStats,
+    pub EyeNexus_controller_c : i32,
 }
 
 impl StatisticsManager {
@@ -165,6 +166,7 @@ impl StatisticsManager {
             last_vsync_time: Instant::now(),
             frame_interval: nominal_server_frame_interval,
             last_nominal_bitrate_stats: NominalBitrateStats::default(),
+            EyeNexus_controller_c : 188,
         }
     }
 
@@ -239,14 +241,14 @@ impl StatisticsManager {
             Duration::ZERO
         }
     }
-    pub fn report_send_timestamp(&mut self,target_timestamp: Duration)
+    pub fn report_send_timestamp(&mut self,target_timestamp: Duration,send_ts: i64)
     {
         if let Some(frame) = self
             .history_buffer
             .iter_mut()
             .find(|frame| frame.target_timestamp == target_timestamp)
         {
-            frame.frame_send_timestamp = Utc::now().timestamp_micros();
+            frame.frame_send_timestamp = send_ts;
         }
 
     }
@@ -390,6 +392,8 @@ impl StatisticsManager {
                 nominal_bitrate: self.last_nominal_bitrate_stats.clone(),
                 actual_bitrate_bps: bitrate_bps,
             }));
+            let EyeNexus_controller = EYENEXUS_MANAGER.lock().Update(frame.frame_send_timestamp as f64, client_stats.frame_arrival_timestamp as f64, frame.video_packet_bytes as i64);
+            self.EyeNexus_controller_c = EyeNexus_controller;
             let mut timestamp_for_this_frame=(frame.target_timestamp.as_nanos()).to_string();
             let mut interval_trackingReceived_framePresentInVirtualDevice=(game_time_latency.as_secs_f32()*1000.).to_string();//game latency
             let mut interval_framePresentInVirtualDevice_frameComposited=(server_compositor_latency.as_secs_f32()*1000.).to_string();//composite latency
@@ -406,10 +410,25 @@ impl StatisticsManager {
             let mut frame_arrival_ts=client_stats.frame_arrival_timestamp.to_string();
             let mut server_fps=server_fps.to_string();
             let mut client_fps=client_fps.to_string();
+            let mut controller_c = EyeNexus_controller.to_string();
+            let mut current_state = "normal".to_string(); 
+            if EYENEXUS_MANAGER.lock().trendline_manager.hypothesis_ == BandwidthUsage::kBwOverusing{
+                current_state = "overusing".to_string();
+            }else if EYENEXUS_MANAGER.lock().trendline_manager.hypothesis_ == BandwidthUsage::kBwUnderusing{
+                current_state = "underusing".to_string();
+            }
+            let mut action = EYENEXUS_MANAGER.lock().action;
+            let mut current_action = "hold".to_string();
+            if action == 0{
+                current_action = "decrease".to_string();
+            }else if action == 2{
+                current_action = "increase".to_string();
+            }
             //let mut tracking_received_time=frame.tracking_received.saturating_duration_since(Instant::)
+            let experiment_target_timestamp=Local::now().format("%Y%m%d_%H%M%S").to_string();
             let latency_strings=[timestamp_for_this_frame,interval_trackingReceived_framePresentInVirtualDevice,interval_framePresentInVirtualDevice_frameComposited,interval_frameComposited_VideoEncoded,interval_VideoReceivedByClient_VideoDecoded,interval_network,
             client_dequeue_latency,client_rendering_latency,client_vsync_queue_latency,interval_total_pipeline,bitrate_statistics,total_size_for_this_encoded_frame_bytes,frame_send_ts,
-            frame_arrival_ts,server_fps,client_fps];
+            frame_arrival_ts,server_fps,client_fps,controller_c,current_state,current_action,experiment_target_timestamp];
             write_latency_to_csv("statistics.csv", latency_strings);
             network_latency
         } else {

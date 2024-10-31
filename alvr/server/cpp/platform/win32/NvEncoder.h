@@ -257,11 +257,16 @@ public:
     *  @brief This function returns the number of allocated buffers.
     */
     uint32_t GetEncoderBufferCount() const { return m_nEncoderBuffer; }
-    void GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint64_t targetTimestampNs);
+    void GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint64_t targetTimestampNs, int c);
 
     int CalculateQPValue_leftEye(int i, int j);
 
     int CalculateQPValue_rightEye(int i, int j);
+
+    int EyeNexus_CalculateQPOffsetValue_leftEye(int i, int j, int c);
+
+    int EyeNexus_CalculateQPOffsetValue_rightEye(int i, int j, int c);
+
 protected:
 
     /**
@@ -446,6 +451,9 @@ protected:
     IVFUtils m_IVFUtils;
     bool m_bWriteIVFFileHeader = true;
     bool m_bUseIVFContainer = true;
+    static const int CONST_QP = 23;
+    static const int MAX_QP = 47;
+    static const int MAX_QP_OFFSET = MAX_QP - CONST_QP;
 
 private:
     uint32_t m_nWidth;

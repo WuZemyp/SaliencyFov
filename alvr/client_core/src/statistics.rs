@@ -68,14 +68,14 @@ impl StatisticsManager {
         }
     }
 
-    pub fn report_video_packet_received(&mut self, target_timestamp: Duration) {
+    pub fn report_video_packet_received(&mut self, target_timestamp: Duration,arrival_timestamp: i64) {
         if let Some(frame) = self
             .history_buffer
             .iter_mut()
             .find(|frame| frame.client_stats.target_timestamp == target_timestamp)
         {
             frame.video_packet_received = Instant::now();
-            frame.client_stats.frame_arrival_timestamp=Utc::now().timestamp_micros();
+            frame.client_stats.frame_arrival_timestamp=arrival_timestamp;
         }
     }
     pub fn report_frame_fr_shift(&mut self, target_timestamp: Duration, centerShiftX: f32, centerShiftY: f32) {
