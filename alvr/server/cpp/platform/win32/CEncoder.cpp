@@ -110,7 +110,7 @@
 
 				if (m_FrameRender->GetTexture(false,m_targetTimestampNs))
 				{
-					m_videoEncoder->Transmit(m_FrameRender->GetTexture(true,m_targetTimestampNs).Get(), m_presentationTime, m_targetTimestampNs, m_scheduler.CheckIDRInsertion(),m_gaze_location_leftx,m_gaze_location_lefty,m_gaze_location_rightx,m_gaze_location_righty);
+					m_videoEncoder->Transmit(m_FrameRender->GetTexture(false,m_targetTimestampNs).Get(), m_presentationTime, m_targetTimestampNs, m_scheduler.CheckIDRInsertion(),m_gaze_location_leftx,m_gaze_location_lefty,m_gaze_location_rightx,m_gaze_location_righty);
 				}
 
 				m_encodeFinished.Set();

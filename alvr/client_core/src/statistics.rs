@@ -68,7 +68,7 @@ impl StatisticsManager {
         }
     }
 
-    pub fn report_video_packet_received(&mut self, target_timestamp: Duration,arrival_timestamp: i64) {
+    pub fn report_video_packet_received(&mut self, target_timestamp: Duration,arrival_timestamp: i64,loss : bool) {
         if let Some(frame) = self
             .history_buffer
             .iter_mut()
@@ -76,6 +76,27 @@ impl StatisticsManager {
         {
             frame.video_packet_received = Instant::now();
             frame.client_stats.frame_arrival_timestamp=arrival_timestamp;
+            frame.client_stats.recv_times+=1;
+            frame.client_stats.had_pkt_loss = loss;
+        }
+    }
+    pub fn report_frame_arrival_ts_delta(&mut self, target_timestamp: Duration,arrival_timestamp_delta: i64) {
+        if let Some(frame) = self
+            .history_buffer
+            .iter_mut()
+            .find(|frame| frame.client_stats.target_timestamp == target_timestamp)
+        {
+            frame.client_stats.arrival_ts_delta = arrival_timestamp_delta;
+            frame.client_stats.arrival_delta_vec.push((frame.client_stats.recv_times as i32,arrival_timestamp_delta));
+        }
+    }
+    pub fn report_decode_fail(&mut self, target_timestamp: Duration,decode_status : bool) {
+        if let Some(frame) = self
+            .history_buffer
+            .iter_mut()
+            .find(|frame| frame.client_stats.target_timestamp == target_timestamp)
+        {
+            frame.client_stats.push_decode_failed = decode_status;
         }
     }
     pub fn report_frame_fr_shift(&mut self, target_timestamp: Duration, centerShiftX: f32, centerShiftY: f32) {

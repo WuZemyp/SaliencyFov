@@ -207,6 +207,11 @@ pub struct ClientStatistics {
     pub vsync_queue: Duration,
     pub total_pipeline_latency: Duration,
     pub frame_arrival_timestamp:i64,
+    pub recv_times: i64,
+    pub had_pkt_loss : bool,
+    pub push_decode_failed :bool,
+    pub arrival_ts_delta : i64,
+    pub arrival_delta_vec :Vec<(i32, i64)>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

@@ -9,7 +9,7 @@ use std::io::prelude::*;
 use csv::Writer;
 use chrono::{Utc, TimeZone};
 
-const WINDOW_SIZE : usize = 20;
+const WINDOW_SIZE : usize = 10;
 
 #[derive(PartialEq)]
 pub enum BandwidthUsage {
@@ -240,6 +240,9 @@ pub struct EyeNexus_Controller{
     pub trendline_manager : TrendlineEstimator,
     pub last_frame_arrival_timestamp : f64,
     pub last_frame_send_timestamp : f64,
+    pub send_delta : f64,
+    pub arrival_delta : f64,
+    pub last_frame_ts : Duration,
 }
 impl EyeNexus_Controller {
     pub fn new()->Self{
@@ -249,9 +252,13 @@ impl EyeNexus_Controller {
             trendline_manager : TrendlineEstimator::new(),
             last_frame_arrival_timestamp : 0.,
             last_frame_send_timestamp : 0.,
+            send_delta : 0.,
+            arrival_delta : 0.,
+            last_frame_ts : Duration::ZERO,
         }
     }
-    pub fn Update(&mut self, current_frame_send_timestamp: f64, current_frame_arrival_timestamp: f64, current_frame_size: i64)-> i32{
+    pub fn Update(&mut self, current_frame_send_timestamp: f64, current_frame_arrival_timestamp: f64, current_frame_size: i64, frame_target_ts : Duration, send_delta_in:i64,arrival_delta_in:i64)-> i32{
+
         let mut send_delta_ms= 0.0;
         let mut recv_delta_ms = 0.0;
         
@@ -259,12 +266,17 @@ impl EyeNexus_Controller {
             send_delta_ms = (current_frame_send_timestamp - self.last_frame_send_timestamp)*0.001;
             recv_delta_ms = (current_frame_arrival_timestamp - self.last_frame_arrival_timestamp)*0.001;
         }
-        self.last_frame_send_timestamp = current_frame_send_timestamp;
-        self.last_frame_arrival_timestamp = current_frame_arrival_timestamp;
-        let send_time_ms = (current_frame_send_timestamp*0.001) as i64;
-        let arrival_time_ms = (current_frame_arrival_timestamp*0.001) as i64;
+        send_delta_ms = (send_delta_in as f64)*0.001;
+        recv_delta_ms = (arrival_delta_in as f64)*0.001;
+        let adjust_current_frame_arrival_timestamp = self.last_frame_arrival_timestamp + arrival_delta_in as f64;
+        let adjust_current_frame_send_timestamp = self.last_frame_send_timestamp + send_delta_in as f64;
+        self.last_frame_send_timestamp = adjust_current_frame_send_timestamp;
+        self.last_frame_arrival_timestamp = adjust_current_frame_arrival_timestamp;
+        let send_time_ms = (adjust_current_frame_send_timestamp*0.001) as i64;
+        let arrival_time_ms = (adjust_current_frame_arrival_timestamp*0.001) as i64;
         let packet_size = current_frame_size;
-        
+        self.send_delta = send_delta_ms;
+        self.arrival_delta = recv_delta_ms;
         self.trendline_manager.UpdateTrendline(recv_delta_ms, send_delta_ms, send_time_ms, arrival_time_ms, packet_size);
         if self.trendline_manager.hypothesis_ == BandwidthUsage::kBwNormal{
             if self.action == 1{
@@ -281,11 +293,11 @@ impl EyeNexus_Controller {
             self.action = 1;
         }
         if self.action == 0{
-            self.controller_c = (self.controller_c as f64 *0.8) as i32;//decrease 0.8
+            self.controller_c = (self.controller_c as f64 *0.85) as i32;//decrease 0.85
         }else if self.action == 2{
             self.controller_c += 1;//add 1
         }
-        //clamp C to [27,188]
+        //clamp C to [1,188]
         if self.controller_c >188{
             self.controller_c = 188;
         }else if self.controller_c < 1{

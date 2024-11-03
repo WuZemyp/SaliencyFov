@@ -106,6 +106,14 @@ fn create_csv_file_for_statistics(filename: &str) -> Result<(), Box<dyn Error>> 
             "C",
             "current_state",
             "current_action",
+            "modified_trend",
+            "threshold",
+            "send_delta_ts",
+            "arrival_delta_ts",
+            "delta_ts",
+            "client_recv_times",
+            "had_pkt_loss",
+            "push_decode_failed",
             "experiment_target_timestamp",
         ])?;
     } else {
@@ -660,6 +668,7 @@ fn connection_pipeline(
     let video_send_thread = thread::spawn({
         let client_hostname = client_hostname.clone();
         move || {
+            let mut last_frame_send_ts = Utc::now().timestamp_micros();
             while is_streaming(&client_hostname) {
                 let VideoPacket { header, payload } =
                     match video_channel_receiver.recv_timeout(STREAMING_RECV_TIMEOUT) {
@@ -674,9 +683,12 @@ fn connection_pipeline(
                     .get_range_mut(0, payload.len())
                     .copy_from_slice(&payload);
                 let send_timestamp = Utc::now().timestamp_micros();
+                let send_ts_delta = send_timestamp - last_frame_send_ts;
+                last_frame_send_ts = send_timestamp;
                 video_sender.send(buffer).ok();//tcp or udp real send out
                 if let Some(stats) = &mut *STATISTICS_MANAGER.lock() {
                     stats.report_send_timestamp(header.timestamp,send_timestamp);
+                    stats.report_send_timestamp_delta(header.timestamp, send_ts_delta);
                 }
             }
         }

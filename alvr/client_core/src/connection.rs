@@ -289,6 +289,7 @@ fn connection_pipeline(
 
     let video_receive_thread = thread::spawn(move || {
         let mut stream_corrupted = false;
+        let mut last_frame_arrival_ts = Utc::now().timestamp_micros();
         while is_streaming() {
             let data = match video_receiver.recv(STREAMING_RECV_TIMEOUT) {
                 Ok(data) => data,
@@ -299,9 +300,12 @@ fn connection_pipeline(
                 return;
             };
             let arrival_timestamp = Utc::now().timestamp_micros();
+            let arrival_ts_delta = arrival_timestamp - last_frame_arrival_ts;
+            last_frame_arrival_ts = arrival_timestamp;
             if let Some(stats) = &mut *STATISTICS_MANAGER.lock() {
-                stats.report_video_packet_received(header.timestamp,arrival_timestamp);
+                stats.report_video_packet_received(header.timestamp,arrival_timestamp,data.had_packet_loss());
                 //stats.report_frame_fr_shift(header.timestamp, header.centerShiftX, header.centerShiftY);
+                stats.report_frame_arrival_ts_delta(header.timestamp, arrival_ts_delta);
             }
 
             if header.is_idr {
@@ -324,7 +328,11 @@ fn connection_pipeline(
                     if let Some(sender) = &mut *CONTROL_SENDER.lock() {
                         sender.send(&ClientControlPacket::RequestIdr).ok();
                     }
+                    if let Some(stats) = &mut *STATISTICS_MANAGER.lock() {
+                        stats.report_decode_fail(header.timestamp, true);
+                    }
                     warn!("Dropped video packet. Reason: Decoder saturation")
+                    
                 }
             } else {
                 if let Some(sender) = &mut *CONTROL_SENDER.lock() {

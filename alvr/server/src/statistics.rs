@@ -22,6 +22,10 @@ pub struct HistoryFrame {
     reported:bool,//wz repeat
     last_repeat_game_latency:Duration,//wz repeat
     frame_send_timestamp:i64,
+    frame_send_ts_delta:i64,
+    send_times: i32,
+    send_delta_vec : Vec<(i32, i64)>,
+    feedback_index : i32,
     
 }
 
@@ -39,6 +43,10 @@ impl Default for HistoryFrame {
             reported: false,//wz repeat
             last_repeat_game_latency: Duration::ZERO,//wz repeat
             frame_send_timestamp:Utc::now().timestamp_micros(),
+            frame_send_ts_delta:0,
+            send_times : 0,
+            send_delta_vec:Vec::new(),
+            feedback_index :0,
             
         }
     }
@@ -49,7 +57,7 @@ struct BatteryData {
     gauge_value: f32,
     is_plugged: bool,
 }
-fn write_latency_to_csv(filename: &str, latency_values: [String; 20]) -> Result<(), Box<dyn Error>> {
+fn write_latency_to_csv(filename: &str, latency_values: [String; 28]) -> Result<(), Box<dyn Error>> {
 
     let mut file = OpenOptions::new().write(true).append(true).open(filename)?;
     let mut writer = Writer::from_writer(file);
@@ -77,14 +85,14 @@ fn write_latency_to_csv(filename: &str, latency_values: [String; 20]) -> Result<
         &latency_values[17],
         &latency_values[18],
         &latency_values[19],
-        // &latency_values[20],
-        // &latency_values[21],
-        // &latency_values[22],
-        // &latency_values[23],
-        // &latency_values[24],
-        // &latency_values[25],
-        // &latency_values[26],
-        // &latency_values[27],
+        &latency_values[20],
+        &latency_values[21],
+        &latency_values[22],
+        &latency_values[23],
+        &latency_values[24],
+        &latency_values[25],
+        &latency_values[26],
+        &latency_values[27],
         // &latency_values[28],
         // &latency_values[29],
         // &latency_values[30],
@@ -252,6 +260,19 @@ impl StatisticsManager {
         }
 
     }
+    pub fn report_send_timestamp_delta(&mut self,target_timestamp: Duration,send_ts_delta: i64)
+    {
+        if let Some(frame) = self
+            .history_buffer
+            .iter_mut()
+            .find(|frame| frame.target_timestamp == target_timestamp)
+        {
+            frame.frame_send_ts_delta = send_ts_delta;
+            frame.send_times += 1;
+            frame.send_delta_vec.push((frame.send_times,send_ts_delta));
+        }
+
+    }
     pub fn report_packet_loss(&mut self) {
         self.packets_lost_total += 1;
         self.packets_lost_partial_sum += 1;
@@ -392,7 +413,16 @@ impl StatisticsManager {
                 nominal_bitrate: self.last_nominal_bitrate_stats.clone(),
                 actual_bitrate_bps: bitrate_bps,
             }));
-            let EyeNexus_controller = EYENEXUS_MANAGER.lock().Update(frame.frame_send_timestamp as f64, client_stats.frame_arrival_timestamp as f64, frame.video_packet_bytes as i64);
+            frame.feedback_index += 1;
+            let mut send_delta_get_from_vec = frame.frame_send_ts_delta;
+            if let Some((_, value)) = frame.send_delta_vec.iter().find(|&&(index, _)| index == frame.feedback_index) {
+                send_delta_get_from_vec = *value;
+            }
+            let mut arrival_delta_get_from_vec = client_stats.arrival_ts_delta;
+            if let Some((_, value)) = client_stats.arrival_delta_vec.iter().find(|&&(index, _)| index == frame.feedback_index) {
+                arrival_delta_get_from_vec = *value;
+            }
+            let EyeNexus_controller = EYENEXUS_MANAGER.lock().Update(frame.frame_send_timestamp as f64, client_stats.frame_arrival_timestamp as f64, frame.video_packet_bytes as i64,client_stats.target_timestamp,send_delta_get_from_vec,arrival_delta_get_from_vec);
             self.EyeNexus_controller_c = EyeNexus_controller;
             let mut timestamp_for_this_frame=(frame.target_timestamp.as_nanos()).to_string();
             let mut interval_trackingReceived_framePresentInVirtualDevice=(game_time_latency.as_secs_f32()*1000.).to_string();//game latency
@@ -412,6 +442,8 @@ impl StatisticsManager {
             let mut client_fps=client_fps.to_string();
             let mut controller_c = EyeNexus_controller.to_string();
             let mut current_state = "normal".to_string(); 
+            let mut modified_trend = EYENEXUS_MANAGER.lock().trendline_manager.current_trend_for_testing.to_string();
+            let mut threshold = EYENEXUS_MANAGER.lock().trendline_manager.current_threshold_for_testing.to_string();
             if EYENEXUS_MANAGER.lock().trendline_manager.hypothesis_ == BandwidthUsage::kBwOverusing{
                 current_state = "overusing".to_string();
             }else if EYENEXUS_MANAGER.lock().trendline_manager.hypothesis_ == BandwidthUsage::kBwUnderusing{
@@ -426,9 +458,13 @@ impl StatisticsManager {
             }
             //let mut tracking_received_time=frame.tracking_received.saturating_duration_since(Instant::)
             let experiment_target_timestamp=Local::now().format("%Y%m%d_%H%M%S").to_string();
+            let mut send_ts_delta = EYENEXUS_MANAGER.lock().send_delta;
+            let mut arrival_ts_delta = EYENEXUS_MANAGER.lock().arrival_delta;
+            let mut recv_times = client_stats.recv_times.to_string();
+            let delta_ts = (arrival_ts_delta - send_ts_delta).to_string();
             let latency_strings=[timestamp_for_this_frame,interval_trackingReceived_framePresentInVirtualDevice,interval_framePresentInVirtualDevice_frameComposited,interval_frameComposited_VideoEncoded,interval_VideoReceivedByClient_VideoDecoded,interval_network,
             client_dequeue_latency,client_rendering_latency,client_vsync_queue_latency,interval_total_pipeline,bitrate_statistics,total_size_for_this_encoded_frame_bytes,frame_send_ts,
-            frame_arrival_ts,server_fps,client_fps,controller_c,current_state,current_action,experiment_target_timestamp];
+            frame_arrival_ts,server_fps,client_fps,controller_c,current_state,current_action,modified_trend,threshold,send_ts_delta.to_string(),arrival_ts_delta.to_string(),delta_ts,recv_times,client_stats.had_pkt_loss.to_string(),client_stats.push_decode_failed.to_string(),experiment_target_timestamp];
             write_latency_to_csv("statistics.csv", latency_strings);
             network_latency
         } else {
