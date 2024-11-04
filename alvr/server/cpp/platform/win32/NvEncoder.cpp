@@ -778,19 +778,34 @@ void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint
     qp_buf << targetTimestampNs;
     int c = 188;
     c = controller_c;
+    
     if(changed){
 
-        for(int i = 0; i < map_height; i++){
-            for(int j = 0; j < map_width*2; j++){    
 
-                int qp_offset_basedOnLeft = EyeNexus_CalculateQPOffsetValue_leftEye(j,i,c);
-                int qp_offset_basedOnRight = EyeNexus_CalculateQPOffsetValue_rightEye(j,i,c);
-                int final_qp_offset = (((qp_offset_basedOnLeft) < (qp_offset_basedOnRight)) ? (qp_offset_basedOnLeft) : (qp_offset_basedOnRight));
-                qp_map[i*map_width*2+j] = static_cast<int8_t>(final_qp_offset);
-                qp_buf<< ", "<<final_qp_offset;
+        if (c==0){
+            for(int i = 0; i < map_height; i++){
+                for(int j = 0; j < map_width*2; j++){    
+                    qp_map[i*map_width*2+j] = static_cast<int8_t>(24);
+                    qp_buf<< ", "<<24;
+                }
+                qp_buf<<std::endl;
             }
-            qp_buf<<std::endl;
         }
+        else{
+            for(int i = 0; i < map_height; i++){
+                for(int j = 0; j < map_width*2; j++){    
+
+                    int qp_offset_basedOnLeft = EyeNexus_CalculateQPOffsetValue_leftEye(j,i,c);
+                    int qp_offset_basedOnRight = EyeNexus_CalculateQPOffsetValue_rightEye(j,i,c);
+                    int final_qp_offset = (((qp_offset_basedOnLeft) < (qp_offset_basedOnRight)) ? (qp_offset_basedOnLeft) : (qp_offset_basedOnRight));
+                    qp_map[i*map_width*2+j] = static_cast<int8_t>(final_qp_offset);
+                    qp_buf<< ", "<<final_qp_offset;
+                }
+                qp_buf<<std::endl;
+            }
+        }
+
+        
 
 
 
