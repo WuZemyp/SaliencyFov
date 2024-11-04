@@ -114,6 +114,7 @@ fn create_csv_file_for_statistics(filename: &str) -> Result<(), Box<dyn Error>> 
             "client_recv_times",
             "had_pkt_loss",
             "push_decode_failed",
+            "bitrate_mbps",
             "experiment_target_timestamp",
         ])?;
     } else {

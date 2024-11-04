@@ -57,7 +57,7 @@ struct BatteryData {
     gauge_value: f32,
     is_plugged: bool,
 }
-fn write_latency_to_csv(filename: &str, latency_values: [String; 28]) -> Result<(), Box<dyn Error>> {
+fn write_latency_to_csv(filename: &str, latency_values: [String; 29]) -> Result<(), Box<dyn Error>> {
 
     let mut file = OpenOptions::new().write(true).append(true).open(filename)?;
     let mut writer = Writer::from_writer(file);
@@ -93,7 +93,7 @@ fn write_latency_to_csv(filename: &str, latency_values: [String; 28]) -> Result<
         &latency_values[25],
         &latency_values[26],
         &latency_values[27],
-        // &latency_values[28],
+        &latency_values[28],
         // &latency_values[29],
         // &latency_values[30],
         // &latency_values[31],
@@ -337,12 +337,14 @@ impl StatisticsManager {
                     .last_frame_present_interval
                     .max(Duration::from_millis(1))
                     .as_secs_f32();
-
+            let mut bitrate_mbps = "".to_string();
             if self.last_full_report_instant + FULL_REPORT_INTERVAL < Instant::now() {
                 self.last_full_report_instant += FULL_REPORT_INTERVAL;
 
                 let interval_secs = FULL_REPORT_INTERVAL.as_secs_f32();
-
+                bitrate_mbps = (self.video_bytes_partial_sum as f32 * 8.
+                / 1e6
+                / interval_secs).to_string();
                 alvr_events::send_event(EventType::StatisticsSummary(StatisticsSummary {
                     video_packets_total: self.video_packets_total,
                     video_packets_per_sec: (self.video_packets_partial_sum as f32 / interval_secs)
@@ -464,7 +466,7 @@ impl StatisticsManager {
             let delta_ts = (arrival_ts_delta - send_ts_delta).to_string();
             let latency_strings=[timestamp_for_this_frame,interval_trackingReceived_framePresentInVirtualDevice,interval_framePresentInVirtualDevice_frameComposited,interval_frameComposited_VideoEncoded,interval_VideoReceivedByClient_VideoDecoded,interval_network,
             client_dequeue_latency,client_rendering_latency,client_vsync_queue_latency,interval_total_pipeline,bitrate_statistics,total_size_for_this_encoded_frame_bytes,frame_send_ts,
-            frame_arrival_ts,server_fps,client_fps,controller_c,current_state,current_action,modified_trend,threshold,send_ts_delta.to_string(),arrival_ts_delta.to_string(),delta_ts,recv_times,client_stats.had_pkt_loss.to_string(),client_stats.push_decode_failed.to_string(),experiment_target_timestamp];
+            frame_arrival_ts,server_fps,client_fps,controller_c,current_state,current_action,modified_trend,threshold,send_ts_delta.to_string(),arrival_ts_delta.to_string(),delta_ts,recv_times,client_stats.had_pkt_loss.to_string(),client_stats.push_decode_failed.to_string(),bitrate_mbps,experiment_target_timestamp];
             write_latency_to_csv("statistics.csv", latency_strings);
             network_latency
         } else {

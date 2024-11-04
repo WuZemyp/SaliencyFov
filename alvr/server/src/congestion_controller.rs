@@ -9,7 +9,7 @@ use std::io::prelude::*;
 use csv::Writer;
 use chrono::{Utc, TimeZone};
 
-const WINDOW_SIZE : usize = 10;
+const WINDOW_SIZE : usize = 8;
 
 #[derive(PartialEq)]
 pub enum BandwidthUsage {
@@ -293,7 +293,7 @@ impl EyeNexus_Controller {
             self.action = 1;
         }
         if self.action == 0{
-            self.controller_c = (self.controller_c as f64 *0.85) as i32;//decrease 0.85
+            self.controller_c = (self.controller_c as f64 *0.9) as i32;//decrease 0.9
         }else if self.action == 2{
             self.controller_c += 1;//add 1
         }
