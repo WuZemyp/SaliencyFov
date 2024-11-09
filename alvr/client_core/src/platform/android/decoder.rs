@@ -23,8 +23,10 @@ use std::{
     ptr,
     sync::Arc,
     thread::{self, JoinHandle},
-    time::Duration,
+    time::{Duration, Instant},
 };
+use std::fs::OpenOptions;
+use std::io::{self, Write};
 
 struct FakeThreadSafe<T>(T);
 unsafe impl<T> Send for FakeThreadSafe<T> {}
@@ -98,15 +100,26 @@ unsafe impl Send for VideoDecoderSource {}
 impl VideoDecoderSource {
     // The application MUST finish using the returned buffer before calling this function again
     pub fn dequeue_frame(&mut self) -> Option<(Duration, *mut c_void)> {
-        let mut image_queue_lock = self.image_queue.lock();
+        // let file_path = "/sdcard/Android/data/alvr.client/files/decode_queue.txt"; // Use double backslashes for Windows paths
+        
+        // // Attempt to open the file in append mode, or create it if it doesn't exist
+        // let file = OpenOptions::new()
+        //             .write(true)
+        //             .append(true)
+        //             .create(true)
+        //             .open(file_path);
 
+        //         // Handle the result of opening the file
+        // let ts = Instant::now();
+        let mut image_queue_lock = self.image_queue.lock();
+        //let ts1 = Instant::now().saturating_duration_since(ts);
         if let Some(queued_image) = image_queue_lock.front() {
             if queued_image.in_use {
                 // image is released and ready to be reused by the decoder
                 image_queue_lock.pop_front();
             }
         }
-
+        //let ts2 = Instant::now().saturating_duration_since(ts);
         // use running average to give more weight to recent samples
         self.buffering_running_average = self.buffering_running_average
             * self.config.buffering_history_weight
@@ -114,9 +127,28 @@ impl VideoDecoderSource {
         if self.buffering_running_average > self.config.max_buffering_frames as f32 {
             image_queue_lock.pop_front();
         }
+        
 
         if let Some(queued_image) = image_queue_lock.front_mut() {
             queued_image.in_use = true;
+        //     let ts3 = Instant::now().saturating_duration_since(ts);
+        // match file {
+        //     Ok(mut f) => {
+        //         // Create a new line to write
+        //         let new_line = format!("ts1: {:?}, ts2: {:?}, ts3: {:?}\n", 
+        //         ts1, ts2, ts3);
+
+        //         // Write the new line to the file
+        //         if let Err(e) = f.write_all(new_line.as_bytes()) {
+        //             eprintln!("Failed to write to the file: {}", e);
+        //         } else {
+        //             println!("Successfully wrote to the file: {}", file_path);
+        //         }
+        //     }
+        //     Err(e) => {
+        //         eprintln!("Failed to open the file: {}", e);
+        //     }
+        // }
 
             Some((
                 queued_image.timestamp,

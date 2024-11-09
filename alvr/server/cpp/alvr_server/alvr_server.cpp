@@ -191,7 +191,7 @@ void (*VideoSend)(unsigned long long targetTimestampNs, unsigned char *buf, int 
 void (*HapticsSend)(unsigned long long path, float duration_s, float frequency, float amplitude);
 void (*ShutdownRuntime)();
 unsigned long long (*PathStringToHash)(const char *path);
-void (*ReportPresent)(unsigned long long timestamp_ns, unsigned long long offset_ns);
+void (*ReportPresent)(unsigned long long timestamp_ns, unsigned long long offset_ns, int layers);
 void (*ReportComposed)(unsigned long long timestamp_ns, unsigned long long offset_ns);
 FfiDynamicEncoderParams (*GetDynamicEncoderParams)();
 double (*GetEyeGazeLocationLeftX)();
@@ -254,6 +254,8 @@ void SetTracking(unsigned long long targetTimestampNs,
                  const FfiHandSkeleton *leftHand,
                  const FfiHandSkeleton *rightHand,
                  unsigned int controllersTracked) {
+    //auto now1 = std::chrono::system_clock::now();
+	
     for (int i = 0; i < motionsCount; i++) {
         if (deviceMotions[i].deviceID == HEAD_ID && g_driver_provider.hmd) {
             g_driver_provider.hmd->OnPoseUpdated(targetTimestampNs, deviceMotions[i]);
@@ -268,6 +270,13 @@ void SetTracking(unsigned long long targetTimestampNs,
             }
         }
     }
+    // auto now2 = std::chrono::system_clock::now();
+    // auto milliseconds_since_epoch1 = std::chrono::duration_cast<std::chrono::microseconds>(now1.time_since_epoch()).count();
+	// auto milliseconds_since_epoch2 = std::chrono::duration_cast<std::chrono::microseconds>(now2.time_since_epoch()).count();
+    // std::ofstream testOutput("submit.txt", std::ios::app);
+	// testOutput << "settrack called for : "<< targetTimestampNs <<" time: " << (milliseconds_since_epoch2-milliseconds_since_epoch1)<< std::endl;
+	// testOutput.close();
+
 }
 
 void VideoErrorReportReceive() {

@@ -129,24 +129,24 @@ void FFR::Initialize(ID3D11Texture2D* compositionTexture, float centerShiftX, fl
 void FFR::Reinit(float centerShiftX, float centerShiftY)
 {
 
-	auto now = std::chrono::system_clock::now();
+	//auto now = std::chrono::system_clock::now();
     // Convert to milliseconds since epoch
-    auto milliseconds_since_epoch = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+    //auto milliseconds_since_epoch = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
 
 	auto fovVars = CalculateFoveationVars(centerShiftX, centerShiftY);
-	std::ofstream testOut("fovVar.txt", std::ios::app);
-	testOut << "targetEyeWidth" << fovVars.targetEyeWidth << std::endl;
-	testOut << "targetEyeHeight" << fovVars.targetEyeHeight << std::endl;
-	testOut << "OptimizedEyeWidth" << fovVars.optimizedEyeWidth << std::endl;
-	testOut << "OptimizedEyeHeight" << fovVars.optimizedEyeHeight << std::endl;
-	testOut << "eyeWidthRatio" << fovVars.eyeWidthRatio << std::endl;
-	testOut << "eyeHeightRatio" << fovVars.eyeHeightRatio << std::endl;
-	testOut << "centerSizeX" << fovVars.centerSizeX << std::endl;
-	testOut << "centerSizeY" << fovVars.centerSizeY << std::endl;
-	testOut << "centerShiftX" << fovVars.centerShiftX << std::endl;
-	testOut << "centerShiftY" << fovVars.centerShiftY << std::endl;
-	testOut << "edgeRatioX" << fovVars.edgeRatioX << std::endl;
-	testOut << "edgeRatioY" << fovVars.edgeRatioY << std::endl;
+	// std::ofstream testOut("fovVar.txt", std::ios::app);
+	// testOut << "targetEyeWidth" << fovVars.targetEyeWidth << std::endl;
+	// testOut << "targetEyeHeight" << fovVars.targetEyeHeight << std::endl;
+	// testOut << "OptimizedEyeWidth" << fovVars.optimizedEyeWidth << std::endl;
+	// testOut << "OptimizedEyeHeight" << fovVars.optimizedEyeHeight << std::endl;
+	// testOut << "eyeWidthRatio" << fovVars.eyeWidthRatio << std::endl;
+	// testOut << "eyeHeightRatio" << fovVars.eyeHeightRatio << std::endl;
+	// testOut << "centerSizeX" << fovVars.centerSizeX << std::endl;
+	// testOut << "centerSizeY" << fovVars.centerSizeY << std::endl;
+	// testOut << "centerShiftX" << fovVars.centerShiftX << std::endl;
+	// testOut << "centerShiftY" << fovVars.centerShiftY << std::endl;
+	// testOut << "edgeRatioX" << fovVars.edgeRatioX << std::endl;
+	// testOut << "edgeRatioY" << fovVars.edgeRatioY << std::endl;
 
 	ComPtr<ID3D11Buffer> foveatedRenderingBuffer = CreateBuffer(mDevice.Get(), fovVars);
 	std::vector<uint8_t> compressAxisAlignedShaderCSO(COMPRESS_AXIS_ALIGNED_CSO_PTR, COMPRESS_AXIS_ALIGNED_CSO_PTR + COMPRESS_AXIS_ALIGNED_CSO_LEN);
@@ -156,11 +156,11 @@ void FFR::Reinit(float centerShiftX, float centerShiftY)
 	mPipelines.pop_back();
 	mPipelines.push_back(compressAxisAlignedPipeline);
 
-	auto now1 = std::chrono::system_clock::now();
+	//auto now1 = std::chrono::system_clock::now();
 
-    // Convert to milliseconds since epoch
-    auto milliseconds_since_epoch1 = std::chrono::duration_cast<std::chrono::milliseconds>(now1.time_since_epoch()).count();
-	testOut << "computation time in ms: " << (milliseconds_since_epoch1-milliseconds_since_epoch) << std::endl;
+    // // Convert to milliseconds since epoch
+    // auto milliseconds_since_epoch1 = std::chrono::duration_cast<std::chrono::milliseconds>(now1.time_since_epoch()).count();
+	// testOut << "computation time in ms: " << (milliseconds_since_epoch1-milliseconds_since_epoch) << std::endl;
 }
 
 void FFR::Render() {

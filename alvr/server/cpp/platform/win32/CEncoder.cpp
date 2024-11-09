@@ -92,7 +92,7 @@
 			float centerShiftY = static_cast<float>(m_gaze_location_lefty) / 2366.0;
 			m_FrameRender->Startup(centerShiftX, centerShiftY);
 			m_FrameRender->Reinit_ffr(centerShiftX, centerShiftY);
-			Info("reinit called for : %d centershiftX is : %d centershiftY : %d\n",targetTimestampNs,centerShiftX, centerShiftY);
+			//Info("reinit called for : %d centershiftX is : %d centershiftY : %d\n",targetTimestampNs,centerShiftX, centerShiftY);
 			m_FrameRender->RenderFrame(pTexture, bounds, layerCount, recentering, message, debugText);
 			return true;
 		}

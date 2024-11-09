@@ -3,7 +3,8 @@
 #include "Logger.h"
 #include <mutex>
 #include <optional>
-
+#include <iostream>
+#include <fstream>
 void PoseHistory::OnPoseUpdated(uint64_t targetTimestampNs, FfiDeviceMotion motion) {
 	// Put pose history buffer
 	TrackingHistoryFrame history;
@@ -32,11 +33,18 @@ void PoseHistory::OnPoseUpdated(uint64_t targetTimestampNs, FfiDeviceMotion moti
 
 	if (m_poseBuffer.size() == 0) {
 		m_poseBuffer.push_back(history);
+		// std::ofstream testOutput("submit.txt", std::ios::app);
+		// testOutput << "tracking update called for : "<< targetTimestampNs << std::endl;
+		// testOutput.close();
 	}
 	else {
 		if (m_poseBuffer.back().targetTimestampNs != targetTimestampNs) {
 			// New track info
 			m_poseBuffer.push_back(history);
+			
+			// std::ofstream testOutput("submit.txt", std::ios::app);
+			// testOutput << "tracking update called for : "<< targetTimestampNs << std::endl;
+			// testOutput.close();
 		}
 	}
         // The value should match with the client's MAXIMUM_TRACKING_FRAMES in ovr_context.cpp
@@ -49,7 +57,7 @@ std::optional<PoseHistory::TrackingHistoryFrame> PoseHistory::GetBestPoseMatch(c
 {
 	std::unique_lock<std::mutex> lock(m_mutex);
 	// return m_poseBuffer.back();
-	if (m_transformUpdating && !m_poseBuffer.empty()) {
+	if (!m_poseBuffer.empty()) {//m_transformUpdating && 
 		return m_poseBuffer.back();
 	}
 	float minDiff = 100000;

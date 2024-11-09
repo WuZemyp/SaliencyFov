@@ -1283,7 +1283,7 @@ pub fn session_settings_default() -> SettingsDefault {
                 variant: LinuxAudioBackendDefaultVariant::Alsa,
             },
             game_audio: SwitchDefault {
-                enabled: !cfg!(target_os = "linux"),
+                enabled: false,
                 content: GameAudioConfigDefault {
                     gui_collapsed: true,
                     device: OptionalDefault {
@@ -1329,7 +1329,7 @@ pub fn session_settings_default() -> SettingsDefault {
             tracking_ref_only: false,
             enable_vive_tracker_proxy: false,
             face_tracking: SwitchDefault {
-                enabled: false,
+                enabled: true,
                 content: FaceTrackingConfigDefault {
                     gui_collapsed: true,
                     sources: FaceTrackingSourcesConfigDefault {
@@ -1445,7 +1445,7 @@ pub fn session_settings_default() -> SettingsDefault {
                         content: [0.0, -45.0, -90.0],
                     },
                     haptics: SwitchDefault {
-                        enabled: true,
+                        enabled: false,
                         content: HapticsConfigDefault {
                             gui_collapsed: true,
                             intensity_multiplier: 1.0,

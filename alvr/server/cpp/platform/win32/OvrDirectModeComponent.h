@@ -62,4 +62,7 @@ private:
 	uint64_t m_prevTargetTimestampNs;
 
 	std::mutex m_presentMutex;
+	// std::chrono::system_clock::time_point start_time;
+	// std::chrono::system_clock::time_point start_time1;
+
 };

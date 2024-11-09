@@ -1,14 +1,5 @@
 use crate::{
-    bitrate::BitrateManager,
-    face_tracking::FaceTrackingSink,
-    hand_gestures::{trigger_hand_gesture_actions, HandGestureManager, HAND_GESTURE_BUTTON_SET},
-    haptics,
-    input_mapping::ButtonMappingManager,
-    sockets::WelcomeSocket,
-    statistics::StatisticsManager,
-    tracking::{self, TrackingManager},
-    FfiFov, FfiViewsConfig, VideoPacket, BITRATE_MANAGER, DECODER_CONFIG, LIFECYCLE_STATE,
-    SERVER_DATA_MANAGER, STATISTICS_MANAGER, VIDEO_MIRROR_SENDER, VIDEO_RECORDING_FILE,EYE_GAZE_DATA,EYENEXUS_MANAGER,congestion_controller::EyeNexus_Controller,
+    bitrate::{self, BitrateManager}, congestion_controller::EyeNexus_Controller, face_tracking::FaceTrackingSink, hand_gestures::{trigger_hand_gesture_actions, HandGestureManager, HAND_GESTURE_BUTTON_SET}, haptics, input_mapping::ButtonMappingManager, sockets::WelcomeSocket, statistics::StatisticsManager, tracking::{self, TrackingManager}, FfiFov, FfiViewsConfig, VideoPacket, BITRATE_MANAGER, DECODER_CONFIG, EYENEXUS_MANAGER, EYE_GAZE_DATA, LIFECYCLE_STATE, SERVER_DATA_MANAGER, STATISTICS_MANAGER, VIDEO_MIRROR_SENDER, VIDEO_RECORDING_FILE
 };
 use alvr_audio::AudioDevice;
 use alvr_common::{
@@ -116,6 +107,63 @@ fn create_csv_file_for_statistics(filename: &str) -> Result<(), Box<dyn Error>> 
             "push_decode_failed",
             "bitrate_mbps",
             "experiment_target_timestamp",
+            "tracking_recv_times",
+            "frame_present_times",
+            "frame_composition_times",
+            "frame_encoded_times",
+            "frame_send_times",
+            "tracking_recv_ts"
+        ])?;
+    } else {
+        println!("File '{}' already exists, skipping creation.", filename);
+    }
+
+    Ok(())
+}
+fn create_csv_file_for_MTP_statistics(filename: &str) -> Result<(), Box<dyn Error>> {
+    if !fs::metadata(filename).is_ok() {
+        let mut writer = WriterBuilder::new().has_headers(false).from_writer(File::create(filename)?);
+
+        // Write the column names in the first row
+        writer.write_record(&[
+            "target_ts(nanos)",
+            "game latency(ms)",
+            "composite latency(ms)",
+            "encode latency(ms)",
+            "decode latency(ms)",
+            "network latency(ms)",
+            "decoder_queue_latency(ms)",
+            "rendering(ms)",
+            "vsync_queue_latency(ms)",
+            "total latency(ms)",
+            // "target bitrate(mps)",
+            // "total size for this frame(encoded)(bytes)",
+            // "send_ts(ms)",
+            // "arrival_ts(ms)",
+            "enconded frame size(bytes)",
+            "Frame rate(FPS)",
+            // "client_fps(frame per second)",
+            
+            "bitrate_mbps",
+            "C",
+            "experiment_target_timestamp",
+            // "current_state",
+            // "current_action",
+            // "modified_trend",
+            // "threshold",
+            // "send_delta_ts",
+            // "arrival_delta_ts",
+            // "delta_ts",
+            // "client_recv_times",
+            // "had_pkt_loss",
+            // "push_decode_failed",
+           
+            // "tracking_recv_times",
+            // "frame_present_times",
+            // "frame_composition_times",
+            // "frame_encoded_times",
+            // "frame_send_times",
+            // "tracking_recv_ts"
         ])?;
     } else {
         println!("File '{}' already exists, skipping creation.", filename);
@@ -939,18 +987,18 @@ fn connection_pipeline(
                         data[1] = left_frame_y;
                         data[2] = right_frame_x;
                         data[3] = right_frame_y;
-                        let tracking_ts= tracking.target_timestamp.as_nanos().to_string();
-                        let eye_data=[tracking_ts,local_quat_array[0].to_string(),local_quat_array[1].to_string(),local_quat_array[2].to_string(),local_quat_array[3].to_string(),//local combined eye orientation
-                        local_position_array[0].to_string(),local_position_array[1].to_string(),local_position_array[2].to_string(),//local combined eye position
-                        global_quat_array[0].to_string(),global_quat_array[1].to_string(),global_quat_array[2].to_string(),global_quat_array[3].to_string(),//global combined eye orientation
-                        global_position_array[0].to_string(),global_position_array[1].to_string(),global_position_array[2].to_string(),//global combined eye position
-                        left_view_quat_array[0].to_string(),left_view_quat_array[1].to_string(),left_view_quat_array[2].to_string(),left_view_quat_array[3].to_string(),//left eye view orientation
-                        left_view_position_array[0].to_string(),left_view_position_array[1].to_string(),left_view_position_array[2].to_string(),//left eye view position
-                        tracking.left_view_fov.up.to_string(),tracking.left_view_fov.down.to_string(),tracking.left_view_fov.left.to_string(),tracking.left_view_fov.right.to_string(),//left eye fov
-                        right_view_quat_array[0].to_string(),right_view_quat_array[1].to_string(),right_view_quat_array[2].to_string(),right_view_quat_array[3].to_string(),//right eye view orientation
-                        right_view_position_array[0].to_string(),right_view_position_array[1].to_string(),right_view_position_array[2].to_string(),//right eye view position
-                        tracking.right_view_fov.up.to_string(),tracking.right_view_fov.down.to_string(),tracking.right_view_fov.left.to_string(),tracking.right_view_fov.right.to_string(),left_yaw.to_string(),left_pitch.to_string(),left_frame_x.to_string(),left_frame_y.to_string(),right_frame_x.to_string(),right_frame_y.to_string()];//right eye fov
-                        write_latency_to_csv("eyegaze.csv", eye_data);
+                        // let tracking_ts= tracking.target_timestamp.as_nanos().to_string();
+                        // let eye_data=[tracking_ts,local_quat_array[0].to_string(),local_quat_array[1].to_string(),local_quat_array[2].to_string(),local_quat_array[3].to_string(),//local combined eye orientation
+                        // local_position_array[0].to_string(),local_position_array[1].to_string(),local_position_array[2].to_string(),//local combined eye position
+                        // global_quat_array[0].to_string(),global_quat_array[1].to_string(),global_quat_array[2].to_string(),global_quat_array[3].to_string(),//global combined eye orientation
+                        // global_position_array[0].to_string(),global_position_array[1].to_string(),global_position_array[2].to_string(),//global combined eye position
+                        // left_view_quat_array[0].to_string(),left_view_quat_array[1].to_string(),left_view_quat_array[2].to_string(),left_view_quat_array[3].to_string(),//left eye view orientation
+                        // left_view_position_array[0].to_string(),left_view_position_array[1].to_string(),left_view_position_array[2].to_string(),//left eye view position
+                        // tracking.left_view_fov.up.to_string(),tracking.left_view_fov.down.to_string(),tracking.left_view_fov.left.to_string(),tracking.left_view_fov.right.to_string(),//left eye fov
+                        // right_view_quat_array[0].to_string(),right_view_quat_array[1].to_string(),right_view_quat_array[2].to_string(),right_view_quat_array[3].to_string(),//right eye view orientation
+                        // right_view_position_array[0].to_string(),right_view_position_array[1].to_string(),right_view_position_array[2].to_string(),//right eye view position
+                        // tracking.right_view_fov.up.to_string(),tracking.right_view_fov.down.to_string(),tracking.right_view_fov.left.to_string(),tracking.right_view_fov.right.to_string(),left_yaw.to_string(),left_pitch.to_string(),left_frame_x.to_string(),left_frame_y.to_string(),right_frame_x.to_string(),right_frame_y.to_string()];//right eye fov
+                        // write_latency_to_csv("eyegaze.csv", eye_data);
                         
                     }
 
@@ -1012,9 +1060,9 @@ fn connection_pipeline(
 
                 if let Some(stats) = &mut *STATISTICS_MANAGER.lock() {
                     stats.report_tracking_received(tracking.target_timestamp);
-
-                    //let tracking_data=[tracking.target_timestamp.as_nanos().to_string()];
-                    //write_tracking_to_csv("tracking.csv", tracking_data);
+                    let now = Utc::now().timestamp_micros().to_string();
+                    let tracking_data=[tracking.target_timestamp.as_nanos().to_string(),now];
+                    write_tracking_to_csv("tracking.csv", tracking_data);
 
                     unsafe {
                         crate::SetTracking(
@@ -1043,6 +1091,7 @@ fn connection_pipeline(
     let statistics_thread = thread::spawn({
         let client_hostname = client_hostname.clone();
         create_csv_file_for_statistics("statistics.csv");
+        create_csv_file_for_MTP_statistics("statistics_mtp.csv");
         move || {
             while is_streaming(&client_hostname) {
                 let data = match statics_receiver.recv(STREAMING_RECV_TIMEOUT) {
@@ -1057,8 +1106,9 @@ fn connection_pipeline(
                 if let Some(stats) = &mut *STATISTICS_MANAGER.lock() {
                     let timestamp = client_stats.target_timestamp;
                     let decoder_latency = client_stats.video_decode;
-                    let network_latency = stats.report_statistics(client_stats);
-
+                    let cls = client_stats.clone();
+                    let (network_latency, bitrate_mbps,C )= stats.report_statistics(client_stats);
+                    stats.report_statistics_MTP(cls, bitrate_mbps, C);
                     let server_data_lock = SERVER_DATA_MANAGER.read();
                     BITRATE_MANAGER.lock().report_frame_latencies(
                         &server_data_lock.settings().video.bitrate.mode,
@@ -1614,7 +1664,7 @@ fn create_csv_file_tracking(filename: &str) -> Result<(), Box<dyn Error>> {
 
     Ok(())
 }
-fn write_tracking_to_csv(filename: &str, latency_values: [String; 1]) -> Result<(), Box<dyn Error>> {
+fn write_tracking_to_csv(filename: &str, latency_values: [String; 2]) -> Result<(), Box<dyn Error>> {
 
     let mut file = OpenOptions::new().write(true).append(true).open(filename)?;
     let mut writer = Writer::from_writer(file);
@@ -1622,7 +1672,7 @@ fn write_tracking_to_csv(filename: &str, latency_values: [String; 1]) -> Result<
     // Write the latency strings in the next row
     writer.write_record(&[
         &latency_values[0],
-        //&latency_values[1],
+        &latency_values[1],
        
     ])?;
 

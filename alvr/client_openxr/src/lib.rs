@@ -24,7 +24,8 @@ use std::{
     thread::{self, JoinHandle},
     time::{Duration, Instant},
 };
-
+use std::fs::OpenOptions;
+use std::io::{self, Write};
 
 // When the latency goes too high, if prediction offset is not capped tracking poll will fail.
 const MAX_PREDICTION: Duration = Duration::from_millis(70);
@@ -943,17 +944,74 @@ pub fn entry_point() {
                         frame_interval.as_secs_f32() * DECODER_MAX_TIMEOUT_MULTIPLIER,
                     );
                 let mut frame_result = None;
+                
+        
+                       
+                let ts = Instant::now();
                 while frame_result.is_none() && Instant::now() < frame_poll_deadline {
+                    
                     frame_result = alvr_client_core::get_frame();
+                    
                     thread::yield_now();
                 }
+                
 
                 let (timestamp, hardware_buffer) = if let Some(pair) = frame_result {
+                    
+                    // let ts1 = Instant::now().saturating_duration_since(ts);
+                    // let file_path = "/sdcard/Android/data/alvr.client/files/decode_queue3.txt"; 
+                    // let file = OpenOptions::new()
+                    //         .write(true)
+                    //         .append(true)
+                    //         .create(true)
+                    //         .open(file_path);
+                    // match file {
+                    //     Ok(mut f) => {
+                    //         // Create a new line to write
+                    //         let new_line = format!("frame_ts: {:?}, ts1: {:?}\n", 
+                    //         pair.0,ts1);
+            
+                    //         // Write the new line to the file
+                    //         if let Err(e) = f.write_all(new_line.as_bytes()) {
+                    //             eprintln!("Failed to write to the file: {}", e);
+                    //         } else {
+                    //             println!("Successfully wrote to the file: {}", file_path);
+                    //         }
+                    //     }
+                    //     Err(e) => {
+                    //         eprintln!("Failed to open the file: {}", e);
+                    //     }
+                    // }
                     pair
                 } else {
+                    // let ts1 = Instant::now().saturating_duration_since(ts);
+                    // let file_path = "/sdcard/Android/data/alvr.client/files/decode_queue3.txt"; 
+                    // let file = OpenOptions::new()
+                    //         .write(true)
+                    //         .append(true)
+                    //         .create(true)
+                    //         .open(file_path);
+                    // match file {
+                    //     Ok(mut f) => {
+                    //         // Create a new line to write
+                    //         let new_line = format!("failed with ts1: {:?}\n", 
+                    //         ts1);
+            
+                    //         // Write the new line to the file
+                    //         if let Err(e) = f.write_all(new_line.as_bytes()) {
+                    //             eprintln!("Failed to write to the file: {}", e);
+                    //         } else {
+                    //             println!("Successfully wrote to the file: {}", file_path);
+                    //         }
+                    //     }
+                    //     Err(e) => {
+                    //         eprintln!("Failed to open the file: {}", e);
+                    //     }
+                    // }
                     warn!("Timed out when waiting for frame!");
                     (vsync_time, ptr::null_mut())
                 };
+
 
                 while let Ok(views) = session_context.views_history_receiver.try_recv() {
                     if context.views_history.len() > 360 {

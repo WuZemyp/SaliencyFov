@@ -5,6 +5,8 @@ OvrDirectModeComponent::OvrDirectModeComponent(std::shared_ptr<CD3DRender> pD3DR
 	, m_poseHistory(poseHistory)
 	, m_submitLayer(0)
 {
+	// this->start_time = std::chrono::system_clock::now();
+	// this->start_time1 = std::chrono::system_clock::now();
 }
 
 void OvrDirectModeComponent::SetEncoder(std::shared_ptr<CEncoder> pEncoder) {
@@ -132,7 +134,9 @@ void OvrDirectModeComponent::GetNextSwapTextureSetIndex(vr::SharedTextureHandle_
 void OvrDirectModeComponent::SubmitLayer(const SubmitLayerPerEye_t(&perEye)[2])
 {
 	m_presentMutex.lock();
-
+	// auto now1 = std::chrono::system_clock::now();
+	// auto milliseconds_since_epoch1 = std::chrono::duration_cast<std::chrono::microseconds>(start_time1.time_since_epoch()).count();
+	// auto milliseconds_since_epoch2 = std::chrono::duration_cast<std::chrono::microseconds>(now1.time_since_epoch()).count();
 	auto pPose = &perEye[0].mHmdPose; // TODO: are both poses the same? Name HMD suggests yes.
 
 	if (m_submitLayer == 0) {
@@ -142,7 +146,7 @@ void OvrDirectModeComponent::SubmitLayer(const SubmitLayerPerEye_t(&perEye)[2])
 
 		auto pose = m_poseHistory->GetBestPoseMatch(*pPose);
 		if(pose->targetTimestampNs==m_targetTimestampNs){
-			Info("duplicate due to no new update at the end of the buffer");
+			//Info("duplicate due to no new update at the end of the buffer");
 		}
 		if (pose) {
 			// found the frameIndex
@@ -168,12 +172,15 @@ void OvrDirectModeComponent::SubmitLayer(const SubmitLayerPerEye_t(&perEye)[2])
 	else {
 		Warn("Too many layers submitted!\n");
 	}
-	// Info("submitted layer target timestamp=%llu \n", m_targetTimestampNs);
-	// Info("submitted layer no=%llu \n", m_submitLayer);
-
+	//Info("submitted layer target timestamp=%llu \n", m_targetTimestampNs);
+	//Info("submitted layer no=%llu \n", m_submitLayer);
+	// std::ofstream testOutput("submit.txt", std::ios::app);
+	// testOutput << "submit called for : "<< m_targetTimestampNs <<" time: " << (milliseconds_since_epoch2-milliseconds_since_epoch1)<< std::endl;
+	// testOutput.close();
 
 	//CopyTexture();
-
+	// auto now2 = std::chrono::system_clock::now();
+	// start_time1 = now2;
 	m_presentMutex.unlock();
 }
 
@@ -181,8 +188,19 @@ void OvrDirectModeComponent::SubmitLayer(const SubmitLayerPerEye_t(&perEye)[2])
 void OvrDirectModeComponent::Present(vr::SharedTextureHandle_t syncTexture)
 {
 	m_presentMutex.lock();
+	//
 
-	ReportPresent(m_targetTimestampNs, 0);
+	// auto now1 = std::chrono::system_clock::now();
+	// auto milliseconds_since_epoch1 = std::chrono::duration_cast<std::chrono::microseconds>(start_time.time_since_epoch()).count();
+	// auto milliseconds_since_epoch2 = std::chrono::duration_cast<std::chrono::microseconds>(now1.time_since_epoch()).count();
+	// std::ofstream testOutput("submit.txt", std::ios::app);
+	// testOutput << "Present called for : "<< m_targetTimestampNs<<" time: " << (milliseconds_since_epoch2-milliseconds_since_epoch1) << std::endl;
+	// testOutput.close();
+	
+
+
+	//
+	ReportPresent(m_targetTimestampNs, 0, m_submitLayer);
 
 	bool useMutex = true;
 
@@ -190,10 +208,10 @@ void OvrDirectModeComponent::Present(vr::SharedTextureHandle_t syncTexture)
 
 	uint32_t layerCount = m_submitLayer;
 	m_submitLayer = 0;
-
+	//Debug("frame present. FrameIndex=%llu , layercount=%llu\n", m_targetTimestampNs,layerCount);
 	if (m_prevTargetTimestampNs == m_targetTimestampNs) {
-		Debug("Discard duplicated frame. FrameIndex=%llu (Ignoring)\n", m_targetTimestampNs);//key point
-		Info("Discard duplicated frame. FrameIndex=%llu (Ignoring)\n", m_targetTimestampNs);
+		//Debug("Discard duplicated frame. FrameIndex=%llu (Ignoring)\n", m_targetTimestampNs);//key point
+		//Info("Discard duplicated frame. FrameIndex=%llu (Ignoring)\n", m_targetTimestampNs);
 		//return;
 	}
 
@@ -240,6 +258,9 @@ void OvrDirectModeComponent::Present(vr::SharedTextureHandle_t syncTexture)
 	}
 
 	m_presentMutex.unlock();
+
+	// auto now2 = std::chrono::system_clock::now();
+	// start_time = now2;
 }
 
 void OvrDirectModeComponent::PostPresent() {

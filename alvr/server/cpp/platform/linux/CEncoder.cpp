@@ -262,7 +262,7 @@ void CEncoder::Run() {
           present_offset = composed_offset;
         }
 
-        ReportPresent(pose->targetTimestampNs, present_offset);
+        ReportPresent(pose->targetTimestampNs, present_offset,0);
         ReportComposed(pose->targetTimestampNs, composed_offset);
 
         ParseFrameNals(encode_pipeline->GetCodec(), packet.data, packet.size, packet.pts, packet.isIDR);
