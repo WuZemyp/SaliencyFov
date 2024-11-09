@@ -21,7 +21,7 @@ public:
 	void Initialize();
 	void Shutdown();
 
-	void Transmit(ID3D11Texture2D *pTexture, uint64_t presentationTime, uint64_t targetTimestampNs, bool insertIDR, int leftx, int lefty, int rightx, int righty);
+	void Transmit(ID3D11Texture2D *pTexture, uint64_t presentationTime, uint64_t targetTimestampNs, bool insertIDR, int leftx, int lefty, int rightx, int righty,float header_centerShiftX, float header_centerShiftY);
 private:
 	void FillEncodeConfig(NV_ENC_INITIALIZE_PARAMS &initializeParams, int refreshRate, int renderWidth, int renderHeight, uint64_t bitrate_bps);
 

@@ -46,11 +46,13 @@ public:
     gl_render_utils::Texture *GetOutputTexture() { return mExpandedTexture.get(); }
 
     void Reinit(float centerShiftX, float centerShiftY);
-
+    float last_centerShiftX;
+    float last_centerShiftY;
 private:
 
     gl_render_utils::Texture *mInputSurface;
     std::unique_ptr<gl_render_utils::Texture> mExpandedTexture;
     std::unique_ptr<gl_render_utils::RenderState> mExpandedTextureState;
     std::unique_ptr<gl_render_utils::RenderPipeline> mDecompressAxisAlignedPipeline;
+    
 };

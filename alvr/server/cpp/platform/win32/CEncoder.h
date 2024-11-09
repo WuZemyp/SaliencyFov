@@ -69,5 +69,9 @@
 		int m_gaze_location_lefty;
 		int m_gaze_location_rightx;
 		int m_gaze_location_righty;
+
+		float last_centerShiftX;
+		float last_centerShiftY;
+		long long times;
 	};
 

@@ -13,5 +13,5 @@ class VideoEncoder {
     virtual void Transmit(ID3D11Texture2D *pTexture,
                           uint64_t presentationTime,
                           uint64_t targetTimestampNs,
-                          bool insertIDR, int leftx, int lefty, int rightx, int righty) = 0;
+                          bool insertIDR, int leftx, int lefty, int rightx, int righty, float header_centerShiftX, float header_centerShiftY) = 0;
 };

@@ -86,7 +86,7 @@ void VideoEncoderNVENC::Shutdown()
 	}
 }
 
-void VideoEncoderNVENC::Transmit(ID3D11Texture2D *pTexture, uint64_t presentationTime, uint64_t targetTimestampNs, bool insertIDR, int leftxIn, int leftyIn, int rightxIn, int rightyIn)
+void VideoEncoderNVENC::Transmit(ID3D11Texture2D *pTexture, uint64_t presentationTime, uint64_t targetTimestampNs, bool insertIDR, int leftxIn, int leftyIn, int rightxIn, int rightyIn,float header_centerShiftX, float header_centerShiftY)
 {
 	auto params = GetDynamicEncoderParams();
 	// int leftxfromrust=int(GetEyeGazeLocationLeftX());
@@ -145,7 +145,7 @@ void VideoEncoderNVENC::Transmit(ID3D11Texture2D *pTexture, uint64_t presentatio
 			fpOut.write(reinterpret_cast<char*>(packet.data()), packet.size());
 		}
 		
-		ParseFrameNals(m_codec, packet.data(), (int)packet.size(), targetTimestampNs, insertIDR, centerShiftX, centerShiftY);
+		ParseFrameNals(m_codec, packet.data(), (int)packet.size(), targetTimestampNs, insertIDR, header_centerShiftX, header_centerShiftY);
 	}
 }
 

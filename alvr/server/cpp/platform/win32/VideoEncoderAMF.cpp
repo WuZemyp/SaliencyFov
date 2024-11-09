@@ -381,7 +381,7 @@ void VideoEncoderAMF::Shutdown()
 	Debug("Successfully shutdown VideoEncoderAMF.\n");
 }
 
-void VideoEncoderAMF::Transmit(ID3D11Texture2D *pTexture, uint64_t presentationTime, uint64_t targetTimestampNs, bool insertIDR, int leftx, int lefty, int rightx, int righty)
+void VideoEncoderAMF::Transmit(ID3D11Texture2D *pTexture, uint64_t presentationTime, uint64_t targetTimestampNs, bool insertIDR, int leftx, int lefty, int rightx, int righty,float header_centerShiftX, float header_centerShiftY)
 {
 	amf::AMFSurfacePtr surface;
 	// Surface is cached by AMF.
