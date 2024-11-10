@@ -190,7 +190,7 @@ pub fn LinearFitSlope(packets:& VecDeque<PacketTiming>)->Option<f64> {
           self.current_threshold_for_testing=self.threshold_;
           self.current_trend_for_testing=modified_trend;
           self.prev_trend_ = trend;
-          self.UpdateThreshold(modified_trend, now_ms);
+          //self.UpdateThreshold(modified_trend, now_ms);
         }
         
       pub fn UpdateTrendline(&mut self,recv_delta_ms:f64,
