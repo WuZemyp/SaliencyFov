@@ -78,7 +78,7 @@ struct BatteryData {
     gauge_value: f32,
     is_plugged: bool,
 }
-fn write_latency_to_csv(filename: &str, latency_values: [String; 36]) -> Result<(), Box<dyn Error>> {
+fn write_latency_to_csv(filename: &str, latency_values: [String; 39]) -> Result<(), Box<dyn Error>> {
 
     let mut file = OpenOptions::new().write(true).append(true).open(filename)?;
     let mut writer = Writer::from_writer(file);
@@ -122,9 +122,9 @@ fn write_latency_to_csv(filename: &str, latency_values: [String; 36]) -> Result<
         &latency_values[33],
         &latency_values[34],
         &latency_values[35],
-        // &latency_values[36],
-        // &latency_values[37],
-        // &latency_values[38],
+        &latency_values[36],
+        &latency_values[37],
+        &latency_values[38],
         // &latency_values[39],
         // &latency_values[40],
         // &latency_values[41],
@@ -228,7 +228,7 @@ pub struct StatisticsManager {
     last_vsync_time: Instant,
     frame_interval: Duration,
     last_nominal_bitrate_stats: NominalBitrateStats,
-    pub EyeNexus_controller_c : i32,
+    pub EyeNexus_controller_c : f32,
     start_time : Instant,
 }
 
@@ -262,7 +262,7 @@ impl StatisticsManager {
             last_vsync_time: Instant::now(),
             frame_interval: nominal_server_frame_interval,
             last_nominal_bitrate_stats: NominalBitrateStats::default(),
-            EyeNexus_controller_c : 188,
+            EyeNexus_controller_c : 188.,
             start_time : Instant::now(),
         }
     }
@@ -641,10 +641,18 @@ impl StatisticsManager {
             let mut arrival_ts_delta = EYENEXUS_MANAGER.lock().arrival_delta;
             let mut recv_times = client_stats.recv_times.to_string();
             let delta_ts = (arrival_ts_delta - send_ts_delta).to_string();
+            let mut link_capacity_c = "".to_string();
+            let mut link_capacity_c_upper = "".to_string();
+            let mut link_capacity_c_lower = "".to_string();
+            if EYENEXUS_MANAGER.lock().link_capacity_.has_estimate(){
+                link_capacity_c = EYENEXUS_MANAGER.lock().link_capacity_.estimate().to_string();
+                link_capacity_c_upper = EYENEXUS_MANAGER.lock().link_capacity_.UpperBound().to_string();
+                link_capacity_c_lower = EYENEXUS_MANAGER.lock().link_capacity_.LowerBound().to_string();
+            }
             let latency_strings=[timestamp_for_this_frame,interval_trackingReceived_framePresentInVirtualDevice,interval_framePresentInVirtualDevice_frameComposited,interval_frameComposited_VideoEncoded,interval_VideoReceivedByClient_VideoDecoded,interval_network,
             client_dequeue_latency,client_rendering_latency,client_vsync_queue_latency,interval_total_pipeline,bitrate_statistics,total_size_for_this_encoded_frame_bytes,frame_send_ts,
             frame_arrival_ts,server_fps,client_fps,controller_c,current_state,current_action,modified_trend,threshold,send_ts_delta.to_string(),arrival_ts_delta.to_string(),delta_ts,recv_times,client_stats.had_pkt_loss.to_string(),client_stats.push_decode_failed.to_string(),bitrate_mbps,experiment_target_timestamp
-            ,frame.tracking_rece_times.to_string(),frame.frame_present_times.to_string(),frame.composition_times.to_string(),frame.encode_times.to_string(),frame.send_times.to_string(),frame.tracking_received.saturating_duration_since(self.start_time).as_nanos().to_string(),frame.layers_count.to_string()];
+            ,frame.tracking_rece_times.to_string(),frame.frame_present_times.to_string(),frame.composition_times.to_string(),frame.encode_times.to_string(),frame.send_times.to_string(),frame.tracking_received.saturating_duration_since(self.start_time).as_nanos().to_string(),frame.layers_count.to_string(),link_capacity_c,link_capacity_c_lower,link_capacity_c_upper];
             write_latency_to_csv("statistics.csv", latency_strings);
             (network_latency,return_bitrate_mbps,self.EyeNexus_controller_c.to_string())
         } else {

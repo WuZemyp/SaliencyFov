@@ -432,8 +432,8 @@ pub unsafe extern "C" fn HmdDriverFactory(
         let (left_x,left_y,right_x,right_y)=BITRATE_MANAGER.lock().get_eye_gaze_();
         right_y
     }
-    extern "C" fn get_controller_c() -> i32{
-        let mut c = 188;
+    extern "C" fn get_controller_c() -> f32{
+        let mut c = 188.;
         if let Some(stats_manager) = &mut *STATISTICS_MANAGER.lock() {
             c = stats_manager.EyeNexus_controller_c;
         }

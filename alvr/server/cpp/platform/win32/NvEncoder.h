@@ -257,15 +257,15 @@ public:
     *  @brief This function returns the number of allocated buffers.
     */
     uint32_t GetEncoderBufferCount() const { return m_nEncoderBuffer; }
-    void GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint64_t targetTimestampNs, int c);
+    void GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint64_t targetTimestampNs, float c);
 
     int CalculateQPValue_leftEye(int i, int j);
 
     int CalculateQPValue_rightEye(int i, int j);
 
-    int EyeNexus_CalculateQPOffsetValue_leftEye(int i, int j, int c);
+    int EyeNexus_CalculateQPOffsetValue_leftEye(int i, int j, float c);
 
-    int EyeNexus_CalculateQPOffsetValue_rightEye(int i, int j, int c);
+    int EyeNexus_CalculateQPOffsetValue_rightEye(int i, int j, float c);
 
 protected:
 

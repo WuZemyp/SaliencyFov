@@ -198,7 +198,7 @@ double (*GetEyeGazeLocationLeftX)();
 double (*GetEyeGazeLocationLeftY)();
 double (*GetEyeGazeLocationRightX)();
 double (*GetEyeGazeLocationRightY)();
-int (*GetControllerC)();
+float (*GetControllerC)();
 
 
 unsigned long long (*GetSerialNumber)(unsigned long long deviceID, char *outString);

@@ -126,7 +126,7 @@ extern "C" double (*GetEyeGazeLocationLeftX)();
 extern "C" double (*GetEyeGazeLocationLeftY)();
 extern "C" double (*GetEyeGazeLocationRightX)();
 extern "C" double (*GetEyeGazeLocationRightY)();
-extern "C" int (*GetControllerC)();
+extern "C" float (*GetControllerC)();
 extern "C" unsigned long long (*GetSerialNumber)(unsigned long long deviceID, char *outString);
 extern "C" void (*SetOpenvrProps)(unsigned long long deviceID);
 extern "C" void (*RegisterButtons)(unsigned long long deviceID);

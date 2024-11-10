@@ -700,21 +700,21 @@ int NvEncoder::CalculateQPValue_rightEye(int i, int j){
     int qp = static_cast<double>(this->QO_Max) * (1.0f - exp(-(nominator/denominator)));
     return qp;
 }
-int NvEncoder::EyeNexus_CalculateQPOffsetValue_leftEye(int i, int j, int c){
+int NvEncoder::EyeNexus_CalculateQPOffsetValue_leftEye(int i, int j, float c){
     double nominator = (pow((i-m_leftX),2) + pow((j-m_leftY),2));
     double denominator = 2 * pow(c,2);
     int qp = this->MAX_QP_OFFSET - (this->MAX_QP_OFFSET*exp(-(nominator/denominator)));
     return qp;
 }
 
-int NvEncoder::EyeNexus_CalculateQPOffsetValue_rightEye(int i, int j, int c){
+int NvEncoder::EyeNexus_CalculateQPOffsetValue_rightEye(int i, int j, float c){
     double nominator = (pow((i-m_rightX),2) + pow((j-m_rightY),2));
     double denominator = 2 * pow(c,2);
     int qp = this->MAX_QP_OFFSET - (this->MAX_QP_OFFSET*exp(-(nominator/denominator)));
     return qp;
 }
 
-void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint64_t targetTimestampNs, int controller_c){
+void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint64_t targetTimestampNs, float controller_c){
     //initialize QPMap
     bool changed = false;
     if(qp_map==nullptr){
@@ -776,13 +776,13 @@ void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint
     //QP1=15;
     //QP2=45
     qp_buf << targetTimestampNs;
-    int c = 188;
+    float c = 188.;
     c = controller_c;
     
     if(changed){
 
 
-        if (c==0){
+        if (c==0.0){
             for(int i = 0; i < map_height; i++){
                 for(int j = 0; j < map_width*2; j++){    
                     qp_map[i*map_width*2+j] = static_cast<int8_t>(24);

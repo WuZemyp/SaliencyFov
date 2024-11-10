@@ -112,7 +112,11 @@ fn create_csv_file_for_statistics(filename: &str) -> Result<(), Box<dyn Error>> 
             "frame_composition_times",
             "frame_encoded_times",
             "frame_send_times",
-            "tracking_recv_ts"
+            "tracking_recv_ts",
+            "layer_counts",
+            "link_capacity",
+            "link_capacity_upper",
+            "link_capacity_lower",
         ])?;
     } else {
         println!("File '{}' already exists, skipping creation.", filename);

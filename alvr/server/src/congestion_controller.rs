@@ -233,9 +233,79 @@ pub fn LinearFitSlope(packets:& VecDeque<PacketTiming>)->Option<f64> {
                   
   }
 
+pub struct LinkCapacityEstimator{
+    pub estimate_c: Option<f32>,
+    pub deviation_c: f32,
+}
+impl LinkCapacityEstimator{
+    pub fn new()->Self{
+        Self{
+            estimate_c:Option::None,
+            deviation_c:0.4,
+        }
+    }
 
+    pub fn deviation_estimate_c(&mut self)->f32 {
+        return (self.deviation_c*self.estimate_c.unwrap()).sqrt();
+    }
+
+    pub fn  UpperBound(&mut self)->f32 {
+        if !self.estimate_c.is_none()
+        {
+            return (self.estimate_c.unwrap()+ 3.0 * self.deviation_estimate_c());//check the unit of deviation estimate kbps
+        }
+          
+        return f32::INFINITY;
+    }
+      
+    pub fn LowerBound(&mut self)->f32 {
+        if !self.estimate_c.is_none(){
+            return f32::max(0.1, self.estimate_c.unwrap()-3.0*self.deviation_estimate_c());//check the unit of deviation estimate kbps
+        }
+          
+        return 0.1;
+    }
+
+    pub fn Reset(&mut self){
+        self.estimate_c=Option::None;
+    }
+      
+    pub fn OnOveruseDetected(&mut self, acknowledged_c:f32) {
+        self.Update(acknowledged_c, 0.05);
+    }
+
+    pub fn Update(&mut self,capacity_sample:f32, alpha:f32) {
+        if self.estimate_c.is_none() {
+          self.estimate_c = Some(capacity_sample);
+        } else {
+          self.estimate_c = Some((1.0 - alpha) * self.estimate_c.unwrap() + alpha * capacity_sample);
+        }
+        // Estimate the variance of the link capacity estimate and normalize the
+        // variance with the link capacity estimate.
+        let norm = f32::max(self.estimate_c.unwrap(), 1.0);
+        let mut error_kbps = self.estimate_c.unwrap() - capacity_sample;
+        self.deviation_c =
+            (1.0 - alpha) * self.deviation_c + alpha * error_kbps * error_kbps / norm;
+        // 0.4 ~= 14 kbit/s at 500 kbit/s
+        // 2.5f ~= 35 kbit/s at 500 kbit/s
+        if self.deviation_c>2.5 as f32{
+            self.deviation_c=2.5;
+        }else if self.deviation_c<0.4 as f32{
+            self.deviation_c=0.4;
+        }
+        
+      }
+      
+      pub fn has_estimate(&mut self) ->bool {
+        return !self.estimate_c.is_none();
+      }
+      
+      pub fn  estimate(&mut self) ->f32 {
+        return self.estimate_c.unwrap();
+      }
+}
 pub struct EyeNexus_Controller{
-    pub controller_c : i32,//27 - 188
+    pub controller_c : f32,//27 - 188
     pub action : i32,//decrease 0, hold 1, increase 2
     pub trendline_manager : TrendlineEstimator,
     pub last_frame_arrival_timestamp : f64,
@@ -243,11 +313,12 @@ pub struct EyeNexus_Controller{
     pub send_delta : f64,
     pub arrival_delta : f64,
     pub last_frame_ts : Duration,
+    pub link_capacity_:LinkCapacityEstimator,
 }
 impl EyeNexus_Controller {
     pub fn new()->Self{
         Self{
-            controller_c : 188,
+            controller_c : 188.,
             action : 1,
             trendline_manager : TrendlineEstimator::new(),
             last_frame_arrival_timestamp : 0.,
@@ -255,9 +326,10 @@ impl EyeNexus_Controller {
             send_delta : 0.,
             arrival_delta : 0.,
             last_frame_ts : Duration::ZERO,
+            link_capacity_:LinkCapacityEstimator::new(),
         }
     }
-    pub fn Update(&mut self, current_frame_send_timestamp: f64, current_frame_arrival_timestamp: f64, current_frame_size: i64, frame_target_ts : Duration, send_delta_in:i64,arrival_delta_in:i64)-> i32{
+    pub fn Update(&mut self, current_frame_send_timestamp: f64, current_frame_arrival_timestamp: f64, current_frame_size: i64, frame_target_ts : Duration, send_delta_in:i64,arrival_delta_in:i64)-> f32{
 
         let mut send_delta_ms= 0.0;
         let mut recv_delta_ms = 0.0;
@@ -292,16 +364,32 @@ impl EyeNexus_Controller {
         }else{
             self.action = 1;
         }
+
+        //controller change
         if self.action == 0{
-            self.controller_c = (self.controller_c as f64 *0.9) as i32;//decrease 0.9
+            self.controller_c = (self.controller_c as f32 *0.9);//decrease 0.9
+            if self.controller_c < self.link_capacity_.LowerBound(){
+                self.link_capacity_.Reset();
+            }
+            self.link_capacity_.OnOveruseDetected(self.controller_c);
+            self.action = 1;
         }else if self.action == 2{
-            self.controller_c += 1;//add 1
+            if self.controller_c > self.link_capacity_.UpperBound(){
+                self.link_capacity_.Reset();
+            }
+            if self.link_capacity_.has_estimate(){
+                self.controller_c += 0.2;
+            }else{
+                self.controller_c += 1.;//add 1
+            }
+            
         }
+
         //clamp C to [1,188]
-        if self.controller_c >188{
-            self.controller_c = 188;
-        }else if self.controller_c < 0{
-            self.controller_c = 0;
+        if self.controller_c >188.{
+            self.controller_c = 188.;
+        }else if self.controller_c < 0.1{
+            self.controller_c = 0.1;
         }
         return self.controller_c;
     }
