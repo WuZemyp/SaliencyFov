@@ -109,7 +109,7 @@ pub fn LinearFitSlope(packets:& VecDeque<PacketTiming>)->Option<f64> {
               k_up_:0.0087,
               k_down_:0.039,
               overusing_time_threshold_: 10.0,
-              threshold_: 12.5,//12.5
+              threshold_: 3.0,//12.5
               prev_modified_trend_: NAN,
               last_update_ms_: -1,
               prev_trend_:0.0,
@@ -367,20 +367,20 @@ impl EyeNexus_Controller {
 
         //controller change
         if self.action == 0{
-            self.controller_c = (self.controller_c as f32 *0.9);//decrease 0.9
+            self.controller_c = (self.controller_c as f32 *0.9);//decrease 0.8
             if self.controller_c < self.link_capacity_.LowerBound(){
                 self.link_capacity_.Reset();
             }
             self.link_capacity_.OnOveruseDetected(self.controller_c);
-            self.action = 1;
+            //self.action = 1;
         }else if self.action == 2{
             if self.controller_c > self.link_capacity_.UpperBound(){
                 self.link_capacity_.Reset();
             }
             if self.link_capacity_.has_estimate(){
-                self.controller_c += 0.2;
+                self.controller_c += 0.1;
             }else{
-                self.controller_c += 1.;//add 1
+                self.controller_c += 0.2;//add 1
             }
             
         }
