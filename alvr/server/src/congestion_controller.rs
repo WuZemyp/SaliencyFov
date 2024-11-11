@@ -314,6 +314,8 @@ pub struct EyeNexus_Controller{
     pub arrival_delta : f64,
     pub last_frame_ts : Duration,
     pub link_capacity_:LinkCapacityEstimator,
+    pub is_complexity_recovery: bool,
+    pub last_frame_size: i64,
 }
 impl EyeNexus_Controller {
     pub fn new()->Self{
@@ -327,6 +329,8 @@ impl EyeNexus_Controller {
             arrival_delta : 0.,
             last_frame_ts : Duration::ZERO,
             link_capacity_:LinkCapacityEstimator::new(),
+            is_complexity_recovery: false,
+            last_frame_size: 0,
         }
     }
     pub fn Update(&mut self, current_frame_send_timestamp: f64, current_frame_arrival_timestamp: f64, current_frame_size: i64, frame_target_ts : Duration, send_delta_in:i64,arrival_delta_in:i64)-> f32{
@@ -364,6 +368,13 @@ impl EyeNexus_Controller {
         }else{
             self.action = 1;
         }
+        if self.is_complexity_recovery && self.trendline_manager.hypothesis_ == BandwidthUsage::kBwNormal{
+            self.is_complexity_recovery = false;
+        }
+        if current_frame_size > self.last_frame_size*2{
+            self.is_complexity_recovery = true;
+        }
+        self.last_frame_size = current_frame_size;
 
         //controller change
         if self.action == 0{
@@ -383,6 +394,9 @@ impl EyeNexus_Controller {
                 self.controller_c += 0.2;//add 1
             }
             
+        }
+        if self.is_complexity_recovery{
+            self.controller_c = self.controller_c*0.5;
         }
 
         //clamp C to [1,188]
