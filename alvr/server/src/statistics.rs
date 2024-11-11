@@ -236,6 +236,7 @@ pub struct StatisticsManager {
     start_time : Instant,
     pub last_action : i32,
     pub last_change_time : i64,
+    pub is_complexity_recovery:bool
 }
 
 impl StatisticsManager {
@@ -272,6 +273,7 @@ impl StatisticsManager {
             start_time : Instant::now(),
             last_action : 1,
             last_change_time : Utc::now().timestamp_micros(),
+            is_complexity_recovery: false,
         }
     }
 
@@ -615,6 +617,7 @@ impl StatisticsManager {
             //EYENEXUS_MANAGER.lock().controller_c = frame.frame_c;
             let EyeNexus_controller = EYENEXUS_MANAGER.lock().Update(frame.frame_send_timestamp as f64, client_stats.frame_arrival_timestamp as f64, frame.video_packet_bytes as i64,client_stats.target_timestamp,send_delta_get_from_vec,arrival_delta_get_from_vec);
             self.EyeNexus_controller_c = EyeNexus_controller;
+            self.is_complexity_recovery = EYENEXUS_MANAGER.lock().is_complexity_recovery;
             self.last_action = EYENEXUS_MANAGER.lock().action;
             self.last_change_time = Utc::now().timestamp_micros();
             let mut timestamp_for_this_frame=(frame.target_timestamp.as_nanos()).to_string();

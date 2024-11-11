@@ -9,7 +9,7 @@ use std::io::prelude::*;
 use csv::Writer;
 use chrono::{Utc, TimeZone};
 
-const WINDOW_SIZE : usize = 8;
+const WINDOW_SIZE : usize = 5;
 
 #[derive(PartialEq)]
 pub enum BandwidthUsage {
@@ -109,7 +109,7 @@ pub fn LinearFitSlope(packets:& VecDeque<PacketTiming>)->Option<f64> {
               k_up_:0.0087,
               k_down_:0.039,
               overusing_time_threshold_: 10.0,
-              threshold_: 3.0,//12.5
+              threshold_: 6.0,//12.5
               prev_modified_trend_: NAN,
               last_update_ms_: -1,
               prev_trend_:0.0,
@@ -391,13 +391,13 @@ impl EyeNexus_Controller {
             if self.link_capacity_.has_estimate(){
                 self.controller_c += 0.1;
             }else{
-                self.controller_c += 0.2;//add 1
+                self.controller_c += 0.4;//add 1
             }
             
         }
-        if self.is_complexity_recovery{
-            self.controller_c = self.controller_c*0.5;
-        }
+        // if self.is_complexity_recovery{
+        //     self.controller_c = self.controller_c*0.5;
+        // }
 
         //clamp C to [1,188]
         if self.controller_c >188.{
