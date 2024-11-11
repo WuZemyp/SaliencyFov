@@ -112,7 +112,8 @@ extern "C" void (*VideoSend)(unsigned long long targetTimestampNs,
                              int len,
                              bool isIdr,
                              float centerShiftX, 
-                             float centerShiftY);
+                             float centerShiftY,
+                             float c);
 extern "C" void (*HapticsSend)(unsigned long long path,
                                float duration_s,
                                float frequency,
@@ -161,7 +162,7 @@ extern "C" void CaptureFrame();
 
 // NalParsing.cpp
 void ParseFrameNals(
-    int codec, unsigned char *buf, int len, unsigned long long targetTimestampNs, bool isIdr, float centerShiftX = 0.4,float centerShiftY = 0.1);
+    int codec, unsigned char *buf, int len, unsigned long long targetTimestampNs, bool isIdr, float centerShiftX = 0.4,float centerShiftY = 0.1, float c = 188.0);
 
 // CrashHandler.cpp
 void HookCrashHandler();

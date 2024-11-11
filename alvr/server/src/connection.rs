@@ -117,6 +117,8 @@ fn create_csv_file_for_statistics(filename: &str) -> Result<(), Box<dyn Error>> 
             "link_capacity",
             "link_capacity_upper",
             "link_capacity_lower",
+            "last_action",
+            "last_change_time(us)",
         ])?;
     } else {
         println!("File '{}' already exists, skipping creation.", filename);
@@ -1436,7 +1438,7 @@ fn connection_pipeline(
     Ok(())
 }
 
-pub extern "C" fn send_video(timestamp_ns: u64, buffer_ptr: *mut u8, len: i32, is_idr: bool, centerShiftX: f32, centerShiftY: f32) {
+pub extern "C" fn send_video(timestamp_ns: u64, buffer_ptr: *mut u8, len: i32, is_idr: bool, centerShiftX: f32, centerShiftY: f32, c: f32) {
     // start in the corrupts state, the client didn't receive the initial IDR yet.
     static STREAM_CORRUPTED: AtomicBool = AtomicBool::new(true);
     static LAST_IDR_INSTANT: Lazy<Mutex<Instant>> = Lazy::new(|| Mutex::new(Instant::now()));
@@ -1505,7 +1507,7 @@ pub extern "C" fn send_video(timestamp_ns: u64, buffer_ptr: *mut u8, len: i32, i
 
         if let Some(stats) = &mut *STATISTICS_MANAGER.lock() {
             let encoder_latency =
-                stats.report_frame_encoded(Duration::from_nanos(timestamp_ns), buffer_size);
+                stats.report_frame_encoded(Duration::from_nanos(timestamp_ns), buffer_size,c);
 
             BITRATE_MANAGER
                 .lock()

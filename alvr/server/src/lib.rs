@@ -38,6 +38,7 @@ use alvr_packets::{ClientListAction, DecoderInitializationConfig, VideoPacketHea
 use alvr_server_io::ServerDataManager;
 use alvr_session::{CodecType, Settings};
 use bitrate::BitrateManager;
+use chrono::Utc;
 use statistics::StatisticsManager;
 use std::{
     collections::HashMap,
@@ -434,8 +435,13 @@ pub unsafe extern "C" fn HmdDriverFactory(
     }
     extern "C" fn get_controller_c() -> f32{
         let mut c = 188.;
+        let now = Utc::now().timestamp_micros();
         if let Some(stats_manager) = &mut *STATISTICS_MANAGER.lock() {
             c = stats_manager.EyeNexus_controller_c;
+            let last_change = stats_manager.last_change_time;
+            // if (now - last_change) > ((1.*1000.*1000./72.*2.2) as i64){
+            //     c = c*0.5;
+            // }
         }
         c
     } 

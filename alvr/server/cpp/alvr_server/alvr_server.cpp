@@ -187,7 +187,7 @@ void (*LogDebug)(const char *stringPtr);
 void (*LogPeriodically)(const char *tag, const char *stringPtr);
 void (*DriverReadyIdle)(bool setDefaultChaprone);
 void (*SetVideoConfigNals)(const unsigned char *configBuffer, int len, int codec);
-void (*VideoSend)(unsigned long long targetTimestampNs, unsigned char *buf, int len, bool isIdr, float centerShiftX, float centerShiftY);
+void (*VideoSend)(unsigned long long targetTimestampNs, unsigned char *buf, int len, bool isIdr, float centerShiftX, float centerShiftY, float c);
 void (*HapticsSend)(unsigned long long path, float duration_s, float frequency, float amplitude);
 void (*ShutdownRuntime)();
 unsigned long long (*PathStringToHash)(const char *path);

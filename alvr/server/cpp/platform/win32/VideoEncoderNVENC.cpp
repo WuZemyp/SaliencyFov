@@ -145,7 +145,7 @@ void VideoEncoderNVENC::Transmit(ID3D11Texture2D *pTexture, uint64_t presentatio
 			fpOut.write(reinterpret_cast<char*>(packet.data()), packet.size());
 		}
 		
-		ParseFrameNals(m_codec, packet.data(), (int)packet.size(), targetTimestampNs, insertIDR, header_centerShiftX, header_centerShiftY);
+		ParseFrameNals(m_codec, packet.data(), (int)packet.size(), targetTimestampNs, insertIDR, header_centerShiftX, header_centerShiftY,c);
 	}
 }
 

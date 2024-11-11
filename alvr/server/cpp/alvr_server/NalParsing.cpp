@@ -97,7 +97,7 @@ void processH265Nals(unsigned char *&buf, int &len) {
 }
 
 void ParseFrameNals(
-    int codec, unsigned char *buf, int len, unsigned long long targetTimestampNs, bool isIdr, float centerShiftX,float centerShiftY) {
+    int codec, unsigned char *buf, int len, unsigned long long targetTimestampNs, bool isIdr, float centerShiftX,float centerShiftY, float c) {
     if ((unsigned)len < sizeof(NAL_PREFIX_4B)) {
         return;
     }
@@ -108,5 +108,5 @@ void ParseFrameNals(
         processH265Nals(buf, len);
     }
 
-    VideoSend(targetTimestampNs, buf, len, isIdr, centerShiftX, centerShiftY);
+    VideoSend(targetTimestampNs, buf, len, isIdr, centerShiftX, centerShiftY,c);
 }
