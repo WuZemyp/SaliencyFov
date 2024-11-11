@@ -267,6 +267,8 @@ public:
 
     int EyeNexus_CalculateQPOffsetValue_rightEye(int i, int j, float c);
 
+    void reencode_qp_map();
+
 protected:
 
     /**
@@ -409,6 +411,8 @@ private:
     *  @brief This function is used to flush the encoder queue.
     */
     void FlushEncoder();
+
+    
 
 private:
     /**

@@ -614,7 +614,7 @@ impl StatisticsManager {
             if let Some((_, value)) = client_stats.arrival_delta_vec.iter().find(|&&(index, _)| index == frame.feedback_index) {
                 arrival_delta_get_from_vec = *value;
             }
-            //EYENEXUS_MANAGER.lock().controller_c = frame.frame_c;
+            EYENEXUS_MANAGER.lock().controller_c = self.EyeNexus_controller_c;
             let EyeNexus_controller = EYENEXUS_MANAGER.lock().Update(frame.frame_send_timestamp as f64, client_stats.frame_arrival_timestamp as f64, frame.video_packet_bytes as i64,client_stats.target_timestamp,send_delta_get_from_vec,arrival_delta_get_from_vec);
             self.EyeNexus_controller_c = EyeNexus_controller;
             self.is_complexity_recovery = EYENEXUS_MANAGER.lock().is_complexity_recovery;

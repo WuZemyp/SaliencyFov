@@ -439,12 +439,14 @@ pub unsafe extern "C" fn HmdDriverFactory(
         if let Some(stats_manager) = &mut *STATISTICS_MANAGER.lock() {
             c = stats_manager.EyeNexus_controller_c;
             let last_change = stats_manager.last_change_time;
-            if stats_manager.is_complexity_recovery{
-                c = c*0.5;
-            }
-            // if (now - last_change) > ((1.*1000.*1000./72.*2.2) as i64){
+            let last_action =stats_manager.last_action;
+            // if stats_manager.is_complexity_recovery{
             //     c = c*0.5;
             // }
+            if (now - last_change) > ((1.*1000.*1000./72.*2.) as i64) && last_action == 0{
+                c = c*0.9;
+            }
+            stats_manager.EyeNexus_controller_c = c;
         }
         c
     } 

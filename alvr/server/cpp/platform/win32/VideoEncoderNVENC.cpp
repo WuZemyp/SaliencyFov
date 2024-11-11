@@ -13,6 +13,8 @@ VideoEncoderNVENC::VideoEncoderNVENC(std::shared_ptr<CD3DRender> pD3DRender
 	, m_renderWidth(width)
 	, m_renderHeight(height)
 	, m_bitrateInMBits(30)
+	, last_encoded_size(0)
+	, reencode_last_time(false)
 {
 	
 }
@@ -138,13 +140,35 @@ void VideoEncoderNVENC::Transmit(ID3D11Texture2D *pTexture, uint64_t presentatio
 		picParams.encodePicFlags = NV_ENC_PIC_FLAG_FORCEIDR;
 	}
 	m_NvNecoder->EncodeFrame(vPacket, targetTimestampNs, &picParams);
-
+	//reencode
+	//bool reencode = false;
+	// for (std::vector<uint8_t> &packet : vPacket)
+	// {
+	// 	if ((int)packet.size() > last_encoded_size) {
+	// 		reencode = true;
+	// 		break;
+	// 	}
+	// }
+	// if (reencode && !reencode_last_time){
+	// 	//c = c*0.5;
+	// 	m_NvNecoder->reencode_qp_map();
+	// 	vPacket.clear();
+	// 	ID3D11Texture2D *pInputTexture = reinterpret_cast<ID3D11Texture2D*>(encoderInputFrame->inputPtr);
+	// 	m_pD3DRender->GetContext()->CopyResource(pInputTexture, pTexture);
+	// 	NV_ENC_PIC_PARAMS picParams = {};
+	// 	picParams.encodePicFlags = NV_ENC_PIC_FLAG_FORCEIDR;
+	// 	m_NvNecoder->EncodeFrame(vPacket, targetTimestampNs, &picParams);
+	// 	reencode_last_time = true;
+	// }else{
+	// 	reencode_last_time = false;
+	// }
+	
 	for (std::vector<uint8_t> &packet : vPacket)
 	{
 		if (fpOut) {
 			fpOut.write(reinterpret_cast<char*>(packet.data()), packet.size());
 		}
-		
+		last_encoded_size = (int)packet.size();
 		ParseFrameNals(m_codec, packet.data(), (int)packet.size(), targetTimestampNs, insertIDR, header_centerShiftX, header_centerShiftY,c);
 	}
 }

@@ -36,4 +36,6 @@ private:
 	int m_renderWidth;
 	int m_renderHeight;
 	int m_bitrateInMBits;
+	int last_encoded_size;
+	bool reencode_last_time;
 };
