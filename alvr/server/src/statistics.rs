@@ -8,7 +8,7 @@ use std::{
 use csv::Writer;
 use std::fs::OpenOptions;
 use std::error::Error;
-const FULL_REPORT_INTERVAL: Duration = Duration::from_millis(500);
+const FULL_REPORT_INTERVAL: Duration = Duration::from_millis(1000);
 use chrono::{Utc, TimeZone, Local, format::{strftime, StrftimeItems}};
 use crate::{bitrate, congestion_controller::BandwidthUsage, EYENEXUS_MANAGER};
 pub struct HistoryFrame {
@@ -148,7 +148,7 @@ fn write_latency_to_csv(filename: &str, latency_values: [String; 41]) -> Result<
 
     Ok(())
 }
-fn write_MTP_latency_to_csv(filename: &str, latency_values: [String; 15]) -> Result<(), Box<dyn Error>> {
+fn write_MTP_latency_to_csv(filename: &str, latency_values: [String; 17]) -> Result<(), Box<dyn Error>> {
 
     let mut file = OpenOptions::new().write(true).append(true).open(filename)?;
     let mut writer = Writer::from_writer(file);
@@ -171,8 +171,8 @@ fn write_MTP_latency_to_csv(filename: &str, latency_values: [String; 15]) -> Res
         &latency_values[12],
         &latency_values[13],
         &latency_values[14],
-        // &latency_values[15],
-        // &latency_values[16],
+        &latency_values[15],
+        &latency_values[16],
         // &latency_values[17],
         // &latency_values[18],
         // &latency_values[19],
@@ -417,7 +417,7 @@ impl StatisticsManager {
 
     // Called every frame. Some statistics are reported once every frame
     // Returns network latency 
-    pub fn report_statistics_MTP(&mut self, client_stats: ClientStatistics,bitrate_mbps: String,controller: String) {
+    pub fn report_statistics_MTP(&mut self, client_stats: ClientStatistics,bitrate_mbps: String,controller: String,recv_bitrate_mbps: String) {
         if let Some(frame) = self
             .history_buffer
             .iter_mut()
@@ -473,7 +473,7 @@ impl StatisticsManager {
                 let experiment_target_timestamp=Local::now().format("%Y%m%d_%H%M%S").to_string();
                 let controller_string = frame.frame_c_MTP.to_string();
                 let latency_strings=[timestamp_for_this_frame,interval_trackingReceived_framePresentInVirtualDevice,interval_framePresentInVirtualDevice_frameComposited,interval_frameComposited_VideoEncoded,interval_VideoReceivedByClient_VideoDecoded,interval_network,
-            client_dequeue_latency,client_rendering_latency,client_vsync_queue_latency,interval_total_pipeline,encoded_frame_size,server_fps.to_string(),bitrate_mbps,controller_string,experiment_target_timestamp];
+            client_dequeue_latency,client_rendering_latency,client_vsync_queue_latency,interval_total_pipeline,encoded_frame_size,server_fps.to_string(),client_fps.to_string(),bitrate_mbps,recv_bitrate_mbps,controller_string,experiment_target_timestamp];
                 write_MTP_latency_to_csv("statistics_mtp.csv", latency_strings);
                 frame.MTP_reported = true;
 

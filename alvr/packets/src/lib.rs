@@ -212,6 +212,7 @@ pub struct ClientStatistics {
     pub push_decode_failed :bool,
     pub arrival_ts_delta : i64,
     pub arrival_delta_vec :Vec<(i32, i64)>,
+    pub recv_bitrate_report_mbps: f32,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

@@ -303,7 +303,7 @@ fn connection_pipeline(
             let arrival_ts_delta = arrival_timestamp - last_frame_arrival_ts;
             last_frame_arrival_ts = arrival_timestamp;
             if let Some(stats) = &mut *STATISTICS_MANAGER.lock() {
-                stats.report_video_packet_received(header.timestamp,arrival_timestamp,data.had_packet_loss());
+                stats.report_video_packet_received(header.timestamp,arrival_timestamp,data.had_packet_loss(),nal.len());
                 //stats.report_frame_fr_shift(header.timestamp, header.centerShiftX, header.centerShiftY);
                 stats.report_frame_arrival_ts_delta(header.timestamp, arrival_ts_delta);
             }
