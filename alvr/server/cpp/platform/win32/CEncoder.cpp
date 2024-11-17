@@ -97,6 +97,12 @@
 				last_centerShiftY = static_cast<float>(m_gaze_location_lefty) / 2366.0;
 			}
 			times++;
+			if (last_centerShiftX == 0.0){
+				last_centerShiftX = 0.4;
+			}
+			if (last_centerShiftY == 0.0){
+				last_centerShiftY = 0.1;
+			}
 			// float centerShiftX = static_cast<float>(m_gaze_location_leftx) / 2144.0;
 			// float centerShiftY = static_cast<float>(m_gaze_location_lefty) / 2366.0;
 			m_FrameRender->Startup(last_centerShiftX, last_centerShiftY);
