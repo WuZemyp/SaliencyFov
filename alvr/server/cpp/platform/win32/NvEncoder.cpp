@@ -10,6 +10,7 @@
 */
 
 #include "NvEncoder.h"
+#include "alvr_server/Settings.h"
 #include <iostream>
 #include <cmath>
 #include <algorithm>
@@ -575,7 +576,9 @@ void NvEncoder::Update_decompress_params(float centerShiftXAligned, float center
 }
 
 int NvEncoder::decompress_x(int x){
-    float f_x = float(x)/(2144*2);
+    int frame_width = Settings::Instance().m_renderWidth;
+	int frame_height = Settings::Instance().m_renderHeight;
+    float f_x = float(x)/(frame_width*2);
     bool is_right = (f_x>0.5);
     float eye_x = Texture2Eyex(f_x, is_right);
     bool under_bound = (eye_x<lo_bound_x);
@@ -593,7 +596,7 @@ int NvEncoder::decompress_x(int x){
         compressed_x = (-(c2_x - edge_ratio_x * c1_x - 2. * edge_ratio_x *c2_x + c2_x*edge_ratio_x*(1.-hiBoundC_x)+edge_ratio_x)/(edge_ratio_x*(1. - hiBoundC_x))+sqrt(((c2_x-edge_ratio_x * c1_x -2.* edge_ratio_x *c2_x + c2_x * edge_ratio_x *(1. - hiBoundC_x)+edge_ratio_x)/(edge_ratio_x * (1.-hiBoundC_x)))*((c2_x - edge_ratio_x*c1_x - 2. *edge_ratio_x*c2_x + c2_x* edge_ratio_x * (1.- hiBoundC_x)+edge_ratio_x)/(edge_ratio_x * (1. - hiBoundC_x))) - 4. *((c2_x* edge_ratio_x -c2_x)*(c1_x -hiBoundC_x+hiBoundC_x*c2_x)/(edge_ratio_x*(1.-hiBoundC_x)*(1. - hiBoundC_x)) - eye_x* (c2_x *edge_ratio_x - c2_x)/(edge_ratio_x * (1. - hiBoundC_x))))) /(2. * c2_x * (edge_ratio_x - 1.))*(edge_ratio_x * (1.-hiBoundC_x));
     }
     // std::cout << compressed_x << std::endl;
-    return int(Eye2Texturex(compressed_x*eye_size_ratio_x, is_right)*1280*2);
+    return int(Eye2Texturex(compressed_x*eye_size_ratio_x, is_right)*static_cast<int>(this->optimizedEyeWidth)*2);
 }
 
 int NvEncoder::compress_x(int x){
@@ -628,7 +631,9 @@ int NvEncoder::compress_x(int x){
 }
 
 int NvEncoder::decompress_y(int y){
-    float f_y = float(y)/2336;
+    int frame_width = Settings::Instance().m_renderWidth;
+	int frame_height = Settings::Instance().m_renderHeight;
+    float f_y = float(y)/frame_height;
     bool under_bound = (f_y<lo_bound_y);
     bool over_bound = (f_y>=hi_bound_y);
     bool in_bound = !(under_bound||over_bound);
@@ -642,7 +647,7 @@ int NvEncoder::decompress_y(int y){
     else{
         compressed_y = (-(c2_y - edge_ratio_y * c1_y - 2. * edge_ratio_y *c2_y + c2_y*edge_ratio_y*(1.-hiBoundC_y)+edge_ratio_y)/(edge_ratio_y*(1. - hiBoundC_y))+sqrt(((c2_y-edge_ratio_y * c1_y -2.* edge_ratio_y *c2_y + c2_y * edge_ratio_y *(1. - hiBoundC_y)+edge_ratio_y)/(edge_ratio_y * (1.-hiBoundC_y)))*((c2_y - edge_ratio_y*c1_y - 2. *edge_ratio_y*c2_y + c2_y* edge_ratio_y * (1.- hiBoundC_y)+edge_ratio_y)/(edge_ratio_y * (1. - hiBoundC_y))) - 4. *((c2_y* edge_ratio_y -c2_y)*(c1_y -hiBoundC_y+hiBoundC_y*c2_y)/(edge_ratio_y*(1.-hiBoundC_y)*(1. - hiBoundC_y)) - f_y* (c2_y *edge_ratio_y - c2_y)/(edge_ratio_y * (1. - hiBoundC_y))))) /(2. * c2_y * (edge_ratio_y - 1.))*(edge_ratio_y * (1.-hiBoundC_y));
     }
-    return int(compressed_y*eye_size_ratio_y*1216);
+    return int(compressed_y*eye_size_ratio_y*static_cast<int>(this->optimizedEyeHeight));
 }
 
 int NvEncoder::compress_y(int y){
@@ -770,10 +775,38 @@ void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint
     //     r1 = 18;
     //     r2 = 47 -r1;
     // }
-    float centerShiftX = static_cast<float>(leftX) / 2144.0;
-	float centerShiftY = static_cast<float>(leftY) / 2366.0;
-    float centerShiftXAligned = ceil(centerShiftX*1184./(4.0*2.))*(4.0*2.)/1184.;
-    float centerShiftYAligned = ceil(centerShiftY*1410./(5.0*2.))*(5.0*2.)/1410.;
+    int frame_width = Settings::Instance().m_renderWidth;
+	int frame_height = Settings::Instance().m_renderHeight;
+    float centerShiftX = static_cast<float>(leftX) / (static_cast<float>(frame_width));
+	float centerShiftY = static_cast<float>(leftY) / (static_cast<float>(frame_height));
+
+    float targetEyeWidth = (float)Settings::Instance().m_renderWidth / 2;//2144
+	float targetEyeHeight = (float)Settings::Instance().m_renderHeight;//2336
+
+	float centerSizeX = (float)Settings::Instance().m_foveationCenterSizeX;//0.45
+	float centerSizeY = (float)Settings::Instance().m_foveationCenterSizeY;//0.4
+    float edgeRatioX = (float)Settings::Instance().m_foveationEdgeRatioX;//4.0
+	float edgeRatioY = (float)Settings::Instance().m_foveationEdgeRatioY;//5.0
+    float edgeSizeX = targetEyeWidth-centerSizeX*targetEyeWidth;//1179.2
+	float edgeSizeY = targetEyeHeight-centerSizeY*targetEyeHeight;//1401.6
+
+	float centerSizeXAligned = 1.-ceil(edgeSizeX/(edgeRatioX*2.))*(edgeRatioX*2.)/targetEyeWidth;//0.447761194
+	float centerSizeYAligned = 1.-ceil(edgeSizeY/(edgeRatioY*2.))*(edgeRatioY*2.)/targetEyeHeight;//0.3964041096
+
+	float edgeSizeXAligned = targetEyeWidth-centerSizeXAligned*targetEyeWidth;//1184
+	float edgeSizeYAligned = targetEyeHeight-centerSizeYAligned*targetEyeHeight;//1410
+
+	float centerShiftXAligned = ceil(centerShiftX*edgeSizeXAligned/(edgeRatioX*2.))*(edgeRatioX*2.)/edgeSizeXAligned;//0.4054054054
+	float centerShiftYAligned = ceil(centerShiftY*edgeSizeYAligned/(edgeRatioY*2.))*(edgeRatioY*2.)/edgeSizeYAligned;//0.1063829787
+
+    float foveationScaleX = (centerSizeXAligned+(1.-centerSizeXAligned)/edgeRatioX);//0.5858208955
+	float foveationScaleY = (centerSizeYAligned+(1.-centerSizeYAligned)/edgeRatioY);//0.5171232877
+
+	this->optimizedEyeWidth = foveationScaleX*targetEyeWidth;//1256
+	this->optimizedEyeHeight = foveationScaleY*targetEyeHeight;//1208
+
+    // float centerShiftXAligned = ceil(centerShiftX*1184./(4.0*2.))*(4.0*2.)/1184.;
+    // float centerShiftYAligned = ceil(centerShiftY*1410./(5.0*2.))*(5.0*2.)/1410.;
     Update_decompress_params(centerShiftXAligned,centerShiftYAligned);
 
     int r_leftX = (decompress_x(leftX)+15)/16;
@@ -791,7 +824,7 @@ void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint
     qp_buf << targetTimestampNs;
     float c = 188.;
     c = controller_c;
-    
+    c = 20.;
     if(changed){
 
 
@@ -812,9 +845,9 @@ void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint
                     int qp_offset_basedOnRight = EyeNexus_CalculateQPOffsetValue_rightEye(j,i,c);
                     int final_qp_offset = (((qp_offset_basedOnLeft) < (qp_offset_basedOnRight)) ? (qp_offset_basedOnLeft) : (qp_offset_basedOnRight));
                     qp_map[i*map_width*2+j] = static_cast<int8_t>(final_qp_offset);
-                    //qp_buf<< ", "<<final_qp_offset;
+                    qp_buf<< ", "<<final_qp_offset;
                 }
-                //qp_buf<<std::endl;
+                qp_buf<<std::endl;
             }
         }
 
@@ -845,18 +878,18 @@ void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint
         // }
     }
      
-    // qp_buf<< ", " << QP1 
-    // << ", " << QP2
-    // << ", " << r1
-    // << ", " << r2
-    // << ", " << m_leftX
-    // << ", " << m_leftY
-    // << ", " << m_rightX
-    // << ", " << m_rightY
-    // << ", " << m_nWidth
-    // << ", " << m_nHeight
-    // << ", " << map_width
-    // << ", " << map_height << std::endl;
+    qp_buf<< ", " << leftX 
+    << ", " << leftY
+    << ", " << rightX
+    << ", " << rightY
+    << ", " << m_leftX
+    << ", " << m_leftY
+    << ", " << m_rightX
+    << ", " << m_rightY
+    << ", " << m_nWidth
+    << ", " << m_nHeight
+    << ", " << map_width
+    << ", " << map_height << std::endl;
 }
 
 // void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint64_t targetTimestampNs){
