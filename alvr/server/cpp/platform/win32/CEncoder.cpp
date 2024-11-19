@@ -87,7 +87,7 @@
 		{
 			m_presentationTime = presentationTime;
 			m_targetTimestampNs = targetTimestampNs;
-			int frame_width = Settings::Instance().m_renderWidth;
+			int frame_width = Settings::Instance().m_renderWidth/2;
 			int frame_height = Settings::Instance().m_renderHeight;
 			m_gaze_location_leftx = int(GetEyeGazeLocationLeftX());
 			m_gaze_location_lefty = int(frame_height-GetEyeGazeLocationLeftY());

@@ -576,7 +576,7 @@ void NvEncoder::Update_decompress_params(float centerShiftXAligned, float center
 }
 
 int NvEncoder::decompress_x(int x){
-    int frame_width = Settings::Instance().m_renderWidth;
+    int frame_width = Settings::Instance().m_renderWidth/2;
 	int frame_height = Settings::Instance().m_renderHeight;
     float f_x = float(x)/(frame_width*2);
     bool is_right = (f_x>0.5);
@@ -631,7 +631,7 @@ int NvEncoder::compress_x(int x){
 }
 
 int NvEncoder::decompress_y(int y){
-    int frame_width = Settings::Instance().m_renderWidth;
+    int frame_width = Settings::Instance().m_renderWidth/2;
 	int frame_height = Settings::Instance().m_renderHeight;
     float f_y = float(y)/frame_height;
     bool under_bound = (f_y<lo_bound_y);
@@ -775,7 +775,7 @@ void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint
     //     r1 = 18;
     //     r2 = 47 -r1;
     // }
-    int frame_width = Settings::Instance().m_renderWidth;
+    int frame_width = Settings::Instance().m_renderWidth/2;
 	int frame_height = Settings::Instance().m_renderHeight;
     float centerShiftX = static_cast<float>(leftX) / (static_cast<float>(frame_width));
 	float centerShiftY = static_cast<float>(leftY) / (static_cast<float>(frame_height));

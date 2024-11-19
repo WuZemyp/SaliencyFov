@@ -103,7 +103,7 @@ void VideoEncoderNVENC::Transmit(ID3D11Texture2D *pTexture, uint64_t presentatio
 	int lefty = leftyIn;
 	int rightx = rightxIn;
 	int righty = rightyIn;
-	int frame_width = Settings::Instance().m_renderWidth;
+	int frame_width = Settings::Instance().m_renderWidth/2;
 	int frame_height = Settings::Instance().m_renderHeight;
 	float centerShiftX = static_cast<float>(leftx) / (static_cast<float>(frame_width));
 	float centerShiftY = static_cast<float>(lefty) / (static_cast<float>(frame_height));
