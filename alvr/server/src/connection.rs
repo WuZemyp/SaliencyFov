@@ -972,18 +972,18 @@ fn connection_pipeline(
                         data[1] = left_frame_y;
                         data[2] = right_frame_x;
                         data[3] = right_frame_y;
-                        let tracking_ts= tracking.target_timestamp.as_nanos().to_string();
-                        let eye_data=[tracking_ts,local_quat_array[0].to_string(),local_quat_array[1].to_string(),local_quat_array[2].to_string(),local_quat_array[3].to_string(),//local combined eye orientation
-                        local_position_array[0].to_string(),local_position_array[1].to_string(),local_position_array[2].to_string(),//local combined eye position
-                        global_quat_array[0].to_string(),global_quat_array[1].to_string(),global_quat_array[2].to_string(),global_quat_array[3].to_string(),//global combined eye orientation
-                        global_position_array[0].to_string(),global_position_array[1].to_string(),global_position_array[2].to_string(),//global combined eye position
-                        left_view_quat_array[0].to_string(),left_view_quat_array[1].to_string(),left_view_quat_array[2].to_string(),left_view_quat_array[3].to_string(),//left eye view orientation
-                        left_view_position_array[0].to_string(),left_view_position_array[1].to_string(),left_view_position_array[2].to_string(),//left eye view position
-                        tracking.left_view_fov.up.to_string(),tracking.left_view_fov.down.to_string(),tracking.left_view_fov.left.to_string(),tracking.left_view_fov.right.to_string(),//left eye fov
-                        right_view_quat_array[0].to_string(),right_view_quat_array[1].to_string(),right_view_quat_array[2].to_string(),right_view_quat_array[3].to_string(),//right eye view orientation
-                        right_view_position_array[0].to_string(),right_view_position_array[1].to_string(),right_view_position_array[2].to_string(),//right eye view position
-                        tracking.right_view_fov.up.to_string(),tracking.right_view_fov.down.to_string(),tracking.right_view_fov.left.to_string(),tracking.right_view_fov.right.to_string(),left_yaw.to_string(),left_pitch.to_string(),left_frame_x.to_string(),left_frame_y.to_string(),right_frame_x.to_string(),right_frame_y.to_string()];//right eye fov
-                        write_latency_to_csv("eyegaze.csv", eye_data);
+                        // let tracking_ts= tracking.target_timestamp.as_nanos().to_string();
+                        // let eye_data=[tracking_ts,local_quat_array[0].to_string(),local_quat_array[1].to_string(),local_quat_array[2].to_string(),local_quat_array[3].to_string(),//local combined eye orientation
+                        // local_position_array[0].to_string(),local_position_array[1].to_string(),local_position_array[2].to_string(),//local combined eye position
+                        // global_quat_array[0].to_string(),global_quat_array[1].to_string(),global_quat_array[2].to_string(),global_quat_array[3].to_string(),//global combined eye orientation
+                        // global_position_array[0].to_string(),global_position_array[1].to_string(),global_position_array[2].to_string(),//global combined eye position
+                        // left_view_quat_array[0].to_string(),left_view_quat_array[1].to_string(),left_view_quat_array[2].to_string(),left_view_quat_array[3].to_string(),//left eye view orientation
+                        // left_view_position_array[0].to_string(),left_view_position_array[1].to_string(),left_view_position_array[2].to_string(),//left eye view position
+                        // tracking.left_view_fov.up.to_string(),tracking.left_view_fov.down.to_string(),tracking.left_view_fov.left.to_string(),tracking.left_view_fov.right.to_string(),//left eye fov
+                        // right_view_quat_array[0].to_string(),right_view_quat_array[1].to_string(),right_view_quat_array[2].to_string(),right_view_quat_array[3].to_string(),//right eye view orientation
+                        // right_view_position_array[0].to_string(),right_view_position_array[1].to_string(),right_view_position_array[2].to_string(),//right eye view position
+                        // tracking.right_view_fov.up.to_string(),tracking.right_view_fov.down.to_string(),tracking.right_view_fov.left.to_string(),tracking.right_view_fov.right.to_string(),left_yaw.to_string(),left_pitch.to_string(),left_frame_x.to_string(),left_frame_y.to_string(),right_frame_x.to_string(),right_frame_y.to_string()];//right eye fov
+                        // write_latency_to_csv("eyegaze.csv", eye_data);
                         
                     }
 

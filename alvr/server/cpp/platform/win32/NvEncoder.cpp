@@ -845,9 +845,9 @@ void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint
                     int qp_offset_basedOnRight = EyeNexus_CalculateQPOffsetValue_rightEye(j,i,c);
                     int final_qp_offset = (((qp_offset_basedOnLeft) < (qp_offset_basedOnRight)) ? (qp_offset_basedOnLeft) : (qp_offset_basedOnRight));
                     qp_map[i*map_width*2+j] = static_cast<int8_t>(final_qp_offset);
-                    qp_buf<< ", "<<final_qp_offset;
+                    //qp_buf<< ", "<<final_qp_offset;
                 }
-                qp_buf<<std::endl;
+                //qp_buf<<std::endl;
             }
         }
 
@@ -878,18 +878,18 @@ void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint
         // }
     }
      
-    qp_buf<< ", " << leftX 
-    << ", " << leftY
-    << ", " << rightX
-    << ", " << rightY
-    << ", " << m_leftX
-    << ", " << m_leftY
-    << ", " << m_rightX
-    << ", " << m_rightY
-    << ", " << m_nWidth
-    << ", " << m_nHeight
-    << ", " << map_width
-    << ", " << map_height << std::endl;
+    // qp_buf<< ", " << leftX 
+    // << ", " << leftY
+    // << ", " << rightX
+    // << ", " << rightY
+    // << ", " << m_leftX
+    // << ", " << m_leftY
+    // << ", " << m_rightX
+    // << ", " << m_rightY
+    // << ", " << m_nWidth
+    // << ", " << m_nHeight
+    // << ", " << map_width
+    // << ", " << map_height << std::endl;
 }
 
 // void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint64_t targetTimestampNs){
