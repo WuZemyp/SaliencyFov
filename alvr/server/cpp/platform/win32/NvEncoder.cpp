@@ -824,7 +824,7 @@ void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint
     qp_buf << targetTimestampNs;
     float c = 188.;
     c = controller_c;
-    c = 20.;
+    //c = 20.;
     if(changed){
 
 
