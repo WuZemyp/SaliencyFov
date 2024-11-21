@@ -501,6 +501,7 @@ private:
     float eye_size_ratio_y = 0.993421;//no change
     bool checkFrameType = true;
     std::fstream e_buf;
+    std::fstream eye_buf;
     std::fstream qp_buf;
     std::fstream ft_buf;
     std::mt19937 generator;

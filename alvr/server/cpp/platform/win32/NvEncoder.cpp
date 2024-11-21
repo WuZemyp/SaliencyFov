@@ -10,11 +10,8 @@
 */
 
 #include "NvEncoder.h"
-<<<<<<< HEAD
 #include "../../analyze_use/helper_f.h"
-=======
 #include "alvr_server/Settings.h"
->>>>>>> 728c239c645ce53b715e33520bf2bf120801b406
 #include <iostream>
 #include <cmath>
 #include <algorithm>
@@ -806,16 +803,19 @@ void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint
     // }
     int frame_width = Settings::Instance().m_renderWidth/2;
 	int frame_height = Settings::Instance().m_renderHeight;
-    float centerShiftX = static_cast<float>(leftX) / (static_cast<float>(frame_width));
-	float centerShiftY = static_cast<float>(leftY) / (static_cast<float>(frame_height));
+    float centerShiftX = static_cast<float>(leftX) / (static_cast<float>(frame_width));// left eye location x
+	float centerShiftY = static_cast<float>(leftY) / (static_cast<float>(frame_height));// left eye location y
 
-    float targetEyeWidth = (float)Settings::Instance().m_renderWidth / 2;//2144
-	float targetEyeHeight = (float)Settings::Instance().m_renderHeight;//2336
+    float targetEyeWidth = (float)Settings::Instance().m_renderWidth / 2;//frame width for one frame(not composed)
+	float targetEyeHeight = (float)Settings::Instance().m_renderHeight;// frame height
 
 	float centerSizeX = (float)Settings::Instance().m_foveationCenterSizeX;//0.45
 	float centerSizeY = (float)Settings::Instance().m_foveationCenterSizeY;//0.4
     float edgeRatioX = (float)Settings::Instance().m_foveationEdgeRatioX;//4.0
 	float edgeRatioY = (float)Settings::Instance().m_foveationEdgeRatioY;//5.0
+
+
+
     float edgeSizeX = targetEyeWidth-centerSizeX*targetEyeWidth;//1179.2
 	float edgeSizeY = targetEyeHeight-centerSizeY*targetEyeHeight;//1401.6
 
