@@ -10,6 +10,7 @@
 */
 
 #include "NvEncoder.h"
+#include "../../analyze_use/helper_f.h"
 #include <iostream>
 #include <cmath>
 #include <algorithm>
@@ -55,9 +56,11 @@ NvEncoder::NvEncoder(NV_ENC_DEVICE_TYPE eDeviceType, void *pDevice, uint32_t nWi
     void *hEncoder = NULL;
     NVENC_API_CALL(m_nvenc.nvEncOpenEncodeSessionEx(&encodeSessionExParams, &hEncoder));
     m_hEncoder = hEncoder;
-    std::string e1 = get_path_head();
-    e1 += "eframe.h264";
-    e_buf.open(e1.c_str(), std::ios::out|std::ios::binary|std::ios::app);
+    // std::string e1 = get_path_head();
+    // e1 += "eframe.h264";
+    // e_buf.open(e1.c_str(), std::ios::out|std::ios::binary|std::ios::app);
+    eye_buf.open((get_path_head()+"eye.csv").c_str(), std::ios::out);
+    eye_buf << "target_ts(nanos),leftx,lefty,rightx,righty,count"<<std::endl;
     qp_buf.open((get_path_head()+"qp.csv").c_str(), std::ios::out);
     qp_buf << "target_ts(nanos),qp1,qp2,r1,r2,leftX,leftY,rightX,rightY,width,height" << std::endl;
     ft_buf.open((get_path_head()+"frame_type.csv").c_str(), std::ios::out);
@@ -480,7 +483,7 @@ void NvEncoder::MapResources(uint32_t bfrIdx)
     }
 }
 
-void NvEncoder::EncodeFrame(std::vector<std::vector<uint8_t>> &vPacket, uint64_t targetTimestampNs, NV_ENC_PIC_PARAMS *pPicParams)
+void NvEncoder::EncodeFrame(std::vector<std::vector<uint8_t>> &vPacket, uint64_t targetTimestampNs, NV_ENC_PIC_PARAMS *pPicParams, int leftx, int lefty, int rightx, int righty)
 {
     vPacket.clear();
     if (!IsHWEncoderInitialized())
@@ -492,12 +495,35 @@ void NvEncoder::EncodeFrame(std::vector<std::vector<uint8_t>> &vPacket, uint64_t
 
     MapResources(bfrIdx);
 
+    bool save_frame = false;
+    bool open_efile = false;
+    int count = get_frame_count();
+
+    if(count%(get_save_frame_feq()*2)==get_save_frame_feq()){
+        (*pPicParams).encodePicFlags = NV_ENC_PIC_FLAG_FORCEIDR;
+        open_efile = true;
+        save_frame = true;
+    }
+    if(count%(get_save_frame_feq()*2)==(get_save_frame_feq()*2-4)){
+        (*pPicParams).encodePicFlags = NV_ENC_PIC_FLAG_FORCEIDR;
+        open_efile = true;
+    }
+    if(count%(get_save_frame_feq()*2)>=(get_save_frame_feq()*2-4)||count%(get_save_frame_feq()*2)==0){
+        save_frame = true;
+        count += get_save_frame_feq()*2-count%(get_save_frame_feq()*2);
+    }
+    if(count%get_save_frame_feq()==0){
+        eye_buf << targetTimestampNs << "," << leftx << "," << lefty << "," << rightx << "," << righty << "," << count << std::endl;
+    }
+
+
+
     NVENCSTATUS nvStatus = DoEncode(m_vMappedInputBuffers[bfrIdx], m_vBitstreamOutputBuffer[bfrIdx], pPicParams);
 
     if (nvStatus == NV_ENC_SUCCESS || nvStatus == NV_ENC_ERR_NEED_MORE_INPUT)
     {
         m_iToSend++;
-        GetEncodedPacket(m_vBitstreamOutputBuffer, vPacket, true, targetTimestampNs);
+        GetEncodedPacket(m_vBitstreamOutputBuffer, vPacket, true, targetTimestampNs, save_frame, count, open_efile);
     }
     else
     {
@@ -1031,11 +1057,11 @@ void NvEncoder::EndEncode(std::vector<std::vector<uint8_t>> &vPacket)
     SendEOS();
     uint64_t targetTimestampNs = 0;
 
-    GetEncodedPacket(m_vBitstreamOutputBuffer, vPacket, false, targetTimestampNs);
+    GetEncodedPacket(m_vBitstreamOutputBuffer, vPacket, false, targetTimestampNs, false, 0, false);
     e_buf.close();
 }
 
-void NvEncoder::GetEncodedPacket(std::vector<NV_ENC_OUTPUT_PTR> &vOutputBuffer, std::vector<std::vector<uint8_t>> &vPacket, bool bOutputDelay, uint64_t targetTimestampNs)
+void NvEncoder::GetEncodedPacket(std::vector<NV_ENC_OUTPUT_PTR> &vOutputBuffer, std::vector<std::vector<uint8_t>> &vPacket, bool bOutputDelay, uint64_t targetTimestampNs, bool save_frame=false, int count=0, bool open_efile=false)
 {
     unsigned i = 0;
     int iEnd = bOutputDelay ? m_iToSend - m_nOutputDelay : m_iToSend;
@@ -1048,9 +1074,24 @@ void NvEncoder::GetEncodedPacket(std::vector<NV_ENC_OUTPUT_PTR> &vOutputBuffer, 
         NVENC_API_CALL(m_nvenc.nvEncLockBitstream(m_hEncoder, &lockBitstreamData));
   
         uint8_t *pData = (uint8_t *)lockBitstreamData.bitstreamBufferPtr;
-        if(get_eframe_lock()){
+        // if(get_eframe_lock()){
+        //     e_buf.write(reinterpret_cast<char*>(pData), lockBitstreamData.bitstreamSizeInBytes);
+        // }
+        if(open_efile){
+            std::string e1 = get_path_head();
+            e1 += "eframe_";
+            e1 += std::to_string(count);
+            e1 += ".h264";
+            e_buf.open(e1.c_str(), std::ios::out|std::ios::binary|std::ios::app);
+        }
+        if(save_frame){
             e_buf.write(reinterpret_cast<char*>(pData), lockBitstreamData.bitstreamSizeInBytes);
         }
+        else if(e_buf)
+        {
+            e_buf.close();
+        }
+
         if(checkFrameType){
             NV_ENC_PIC_TYPE picType = lockBitstreamData.pictureType;
             if(picType == NV_ENC_PIC_TYPE_IDR || picType == NV_ENC_PIC_TYPE_INTRA_REFRESH){

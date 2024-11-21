@@ -139,7 +139,7 @@ void VideoEncoderNVENC::Transmit(ID3D11Texture2D *pTexture, uint64_t presentatio
 		Debug("Inserting IDR frame.\n");
 		picParams.encodePicFlags = NV_ENC_PIC_FLAG_FORCEIDR;
 	}
-	m_NvNecoder->EncodeFrame(vPacket, targetTimestampNs, &picParams);
+	m_NvNecoder->EncodeFrame(vPacket, targetTimestampNs, &picParams, leftx,lefty,rightx,righty);
 	//reencode
 	//bool reencode = false;
 	// for (std::vector<uint8_t> &packet : vPacket)
