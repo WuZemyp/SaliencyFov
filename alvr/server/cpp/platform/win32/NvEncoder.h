@@ -514,5 +514,7 @@ private:
     int map_height = 0;
     int QO_Max = 10;
     int W = (4288+15)/16/12;
+    float optimizedEyeWidth;
+    float optimizedEyeHeight;
 };
 

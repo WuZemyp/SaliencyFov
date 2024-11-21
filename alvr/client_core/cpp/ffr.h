@@ -48,6 +48,8 @@ public:
     void Reinit(float centerShiftX, float centerShiftY);
     float last_centerShiftX;
     float last_centerShiftY;
+    uint32_t frame_width;
+    uint32_t frame_height;
 private:
 
     gl_render_utils::Texture *mInputSurface;

@@ -152,8 +152,8 @@ void FFR::Initialize(FoveationVars fv) {
                                             fv.centerShiftY,
                                             fv.edgeRatioX,
                                             fv.edgeRatioY);
-    
-
+    this->frame_width = fv.targetEyeWidth;
+    this->frame_height = fv.targetEyeHeight;
     mExpandedTexture.reset(new Texture(false, 0, false, fv.targetEyeWidth * 2, fv.targetEyeHeight));
     mExpandedTextureState = make_unique<RenderState>(mExpandedTexture.get());
 
@@ -165,8 +165,8 @@ void FFR::Initialize(FoveationVars fv) {
 
 void FFR::Reinit(float centerShiftX, float centerShiftY){
     FFRData data_reinit = {(bool)true,
-                        2144,
-                        2336,
+                        this->frame_width,
+                        this->frame_height,
                         0.45f,
                         0.4f,
                         centerShiftX,

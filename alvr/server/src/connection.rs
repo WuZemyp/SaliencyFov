@@ -962,8 +962,8 @@ fn connection_pipeline(
                         let right_view_quat_array=tracking.right_view_pose.orientation.to_array();
                         let right_view_position_array=tracking.right_view_pose.position.to_array();
                         
-                        let frame_width=2144;
-                        let frame_height=2336;
+                        let frame_width=stream_view_resolution.x as i32;
+                        let frame_height=stream_view_resolution.y as i32;
                         // let (left_frame_x,left_frame_y,right_frame_x,right_frame_y)= compute_eye_gaze_location(frame_width,frame_height,left_yaw as f64, left_pitch as f64, -0.6981317, 0.6981317, tracking.left_view_fov.up as f64, tracking.left_view_fov.down as f64, -0.6981317, 0.6981317, tracking.right_view_fov.up as f64, tracking.right_view_fov.down as f64);
                         let (left_frame_x,left_frame_y,right_frame_x,right_frame_y)= compute_eye_gaze_location(frame_width,frame_height,left_yaw as f64, left_pitch as f64, tracking.left_view_fov.left as f64, tracking.left_view_fov.right as f64, tracking.left_view_fov.up as f64, tracking.left_view_fov.down as f64, tracking.right_view_fov.left as f64, tracking.right_view_fov.right as f64, tracking.right_view_fov.up as f64, tracking.right_view_fov.down as f64);
                         BITRATE_MANAGER.lock().report_eye_gaze_update(left_frame_x, left_frame_y, right_frame_x, right_frame_y);
