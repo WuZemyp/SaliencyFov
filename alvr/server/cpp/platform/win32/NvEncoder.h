@@ -455,7 +455,7 @@ protected:
     IVFUtils m_IVFUtils;
     bool m_bWriteIVFFileHeader = true;
     bool m_bUseIVFContainer = true;
-    static const int CONST_QP = 23;
+    static const int CONST_QP = 11;
     static const int MAX_QP = 47;
     static const int MAX_QP_OFFSET = MAX_QP - CONST_QP;
 

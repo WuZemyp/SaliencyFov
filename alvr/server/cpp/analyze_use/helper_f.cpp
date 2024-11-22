@@ -1,7 +1,7 @@
 #include "helper_f.h"
 
 int frame_count = 0;
-int save_frame_feq = 1000;
+int save_frame_feq = 500;
 bool initialized_CS = true;
 bool ReInitialize_CS  = false;
 std::ofstream entropyFile;

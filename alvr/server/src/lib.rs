@@ -445,6 +445,10 @@ pub unsafe extern "C" fn HmdDriverFactory(
             // }
             if (now - last_change) > ((1.*1000.*1000./72.*2.) as i64) && last_action == 0{
                 c = c*0.9;
+
+            }
+            if c < 6.{
+                c = 6.;
             }
             stats_manager.EyeNexus_controller_c = c;
         }
