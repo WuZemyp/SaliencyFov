@@ -486,10 +486,11 @@ bool FrameRender::RenderFrame(ID3D11Texture2D *pTexture[][2], vr::VRTextureBound
 ComPtr<ID3D11Texture2D> FrameRender::GetTexture(bool saving, uint64_t m_targetTimestampNs)
 {
 	if(saving){
+		add_frame_count();
 		SaveTextureAsBytes(m_pD3DRender->GetContext(), m_pCheckingTexture.Get(), false, m_targetTimestampNs);
 		SaveTextureAsBytes(m_pD3DRender->GetContext(), m_pStagingTexture.Get(), true, m_targetTimestampNs);
 		// CalculateEntropy(m_pD3DRender->GetDevice(), m_pD3DRender->GetContext(), m_pStagingTexture.Get(), m_targetTimestampNs);
-		add_frame_count();
+		
 	}
 	return m_pStagingTexture;
 }

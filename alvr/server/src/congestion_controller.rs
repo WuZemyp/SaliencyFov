@@ -400,8 +400,8 @@ impl EyeNexus_Controller {
         // }
 
         //clamp C to [1,188]
-        if self.controller_c >188.{
-            self.controller_c = 188.;
+        if self.controller_c >80.{
+            self.controller_c = 80.;
         }else if self.controller_c < 6.{
             self.controller_c = 6.;
         }
