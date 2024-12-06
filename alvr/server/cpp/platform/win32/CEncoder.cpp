@@ -95,8 +95,8 @@
 			m_gaze_location_righty = int(frame_height-GetEyeGazeLocationRightY());
 			
 			if (times%10 == 0){//
-				last_centerShiftX = static_cast<float>(m_gaze_location_leftx) / (static_cast<float>(frame_width));
-				last_centerShiftY = static_cast<float>(m_gaze_location_lefty) / (static_cast<float>(frame_height));
+				last_centerShiftX = (static_cast<float>(m_gaze_location_leftx) / (static_cast<float>(frame_width)) - 0.5)*2.0;
+				last_centerShiftY = (static_cast<float>(m_gaze_location_lefty) / (static_cast<float>(frame_height)) - 0.5)*2.0;
 			}
 			times++;
 			if (last_centerShiftX == 0.0){

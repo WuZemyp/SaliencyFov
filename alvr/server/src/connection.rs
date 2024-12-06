@@ -973,16 +973,17 @@ fn connection_pipeline(
                         data[2] = right_frame_x;
                         data[3] = right_frame_y;
                         let tracking_ts= tracking.target_timestamp.as_nanos().to_string();
-                        let eye_data=[tracking_ts,local_quat_array[0].to_string(),local_quat_array[1].to_string(),local_quat_array[2].to_string(),local_quat_array[3].to_string(),//local combined eye orientation
-                        local_position_array[0].to_string(),local_position_array[1].to_string(),local_position_array[2].to_string(),//local combined eye position
-                        global_quat_array[0].to_string(),global_quat_array[1].to_string(),global_quat_array[2].to_string(),global_quat_array[3].to_string(),//global combined eye orientation
-                        global_position_array[0].to_string(),global_position_array[1].to_string(),global_position_array[2].to_string(),//global combined eye position
-                        left_view_quat_array[0].to_string(),left_view_quat_array[1].to_string(),left_view_quat_array[2].to_string(),left_view_quat_array[3].to_string(),//left eye view orientation
-                        left_view_position_array[0].to_string(),left_view_position_array[1].to_string(),left_view_position_array[2].to_string(),//left eye view position
-                        tracking.left_view_fov.up.to_string(),tracking.left_view_fov.down.to_string(),tracking.left_view_fov.left.to_string(),tracking.left_view_fov.right.to_string(),//left eye fov
-                        right_view_quat_array[0].to_string(),right_view_quat_array[1].to_string(),right_view_quat_array[2].to_string(),right_view_quat_array[3].to_string(),//right eye view orientation
-                        right_view_position_array[0].to_string(),right_view_position_array[1].to_string(),right_view_position_array[2].to_string(),//right eye view position
-                        tracking.right_view_fov.up.to_string(),tracking.right_view_fov.down.to_string(),tracking.right_view_fov.left.to_string(),tracking.right_view_fov.right.to_string(),left_yaw.to_string(),left_pitch.to_string(),left_frame_x.to_string(),left_frame_y.to_string(),right_frame_x.to_string(),right_frame_y.to_string()];//right eye fov
+                        // local_quat_array[0].to_string(),local_quat_array[1].to_string(),local_quat_array[2].to_string(),local_quat_array[3].to_string(),//local combined eye orientation
+                        // local_position_array[0].to_string(),local_position_array[1].to_string(),local_position_array[2].to_string(),//local combined eye position
+                        // global_quat_array[0].to_string(),global_quat_array[1].to_string(),global_quat_array[2].to_string(),global_quat_array[3].to_string(),//global combined eye orientation
+                        // global_position_array[0].to_string(),global_position_array[1].to_string(),global_position_array[2].to_string(),//global combined eye position
+                        // left_view_quat_array[0].to_string(),left_view_quat_array[1].to_string(),left_view_quat_array[2].to_string(),left_view_quat_array[3].to_string(),//left eye view orientation
+                        // left_view_position_array[0].to_string(),left_view_position_array[1].to_string(),left_view_position_array[2].to_string(),//left eye view position
+                        // tracking.left_view_fov.up.to_string(),tracking.left_view_fov.down.to_string(),tracking.left_view_fov.left.to_string(),tracking.left_view_fov.right.to_string(),//left eye fov
+                        // right_view_quat_array[0].to_string(),right_view_quat_array[1].to_string(),right_view_quat_array[2].to_string(),right_view_quat_array[3].to_string(),//right eye view orientation
+                        // right_view_position_array[0].to_string(),right_view_position_array[1].to_string(),right_view_position_array[2].to_string(),//right eye view position
+                        // tracking.right_view_fov.up.to_string(),tracking.right_view_fov.down.to_string(),tracking.right_view_fov.left.to_string(),tracking.right_view_fov.right.to_string(),left_yaw.to_string(),left_pitch.to_string(),
+                        let eye_data=[tracking_ts,left_frame_x.to_string(),left_frame_y.to_string(),right_frame_x.to_string(),right_frame_y.to_string()];//right eye fov
                         write_latency_to_csv("eyegaze.csv", eye_data);
                         
                     }
@@ -1536,7 +1537,7 @@ pub extern "C" fn send_haptics(device_id: u64, duration_s: f32, frequency: f32, 
             .ok();
     }
 }
-fn write_latency_to_csv(filename: &str, latency_values: [String; 43]) -> Result<(), Box<dyn Error>> {
+fn write_latency_to_csv(filename: &str, latency_values: [String; 5]) -> Result<(), Box<dyn Error>> {
 
     let mut file = OpenOptions::new().write(true).append(true).open(filename)?;
     let mut writer = Writer::from_writer(file);
@@ -1548,44 +1549,7 @@ fn write_latency_to_csv(filename: &str, latency_values: [String; 43]) -> Result<
         &latency_values[2],
         &latency_values[3],
         &latency_values[4],
-        &latency_values[5],
-        &latency_values[6],
-        &latency_values[7],
-        &latency_values[8],
-        &latency_values[9],
-        &latency_values[10],
-        &latency_values[11],
-        &latency_values[12],
-        &latency_values[13],
-        &latency_values[14],
-        &latency_values[15],
-        &latency_values[16],
-        &latency_values[17],
-        &latency_values[18],
-        &latency_values[19],
-        &latency_values[20],
-        &latency_values[21],
-        &latency_values[22],
-        &latency_values[23],
-        &latency_values[24],
-        &latency_values[25],
-        &latency_values[26],
-        &latency_values[27],
-        &latency_values[28],
-        &latency_values[29],
-        &latency_values[30],
-        &latency_values[31],
-        &latency_values[32],
-        &latency_values[33],
-        &latency_values[34],
-        &latency_values[35],
-        &latency_values[36],
-        &latency_values[37],
-        &latency_values[38],
-        &latency_values[39],
-        &latency_values[40],
-        &latency_values[41],
-        &latency_values[42],
+        
 
 
 
@@ -1599,44 +1563,10 @@ fn create_csv_file(filename: &str) -> Result<(), Box<dyn Error>> {
     // Write the column names in the first row
     writer.write_record(&[
         "target_ts",
-        "local_orientation_x",
-        "local_orientation_y",
-        "local_orientation_z",
-        "local_orientation_w",
-        "local_position_x",
-        "local_position_y",
-        "local_position_z",
-        "global_orientation_x",
-        "global_orientation_y",
-        "global_orientation_z",
-        "global_orientation_w",
-        "global_position_x",
-        "global_position_y",
-        "global_position_z",
-        "left_view_orientation_x",
-        "left_view_orientation_y",
-        "left_view_orientation_z",
-        "left_view_orientation_w",
-        "left_view_position_x",
-        "left_view_position_y",
-        "left_view_position_z",
-        "left_view_fov_up",
-        "left_view_fov_down",
-        "left_view_fov_left",
-        "left_view_fov_right",
-        "right_view_orientation_x",
-        "right_view_orientation_y",
-        "right_view_orientation_z",
-        "right_view_orientation_w",
-        "right_view_position_x",
-        "right_view_position_y",
-        "right_view_position_z",
-        "right_view_fov_up",
-        "right_view_fov_down",
-        "right_view_fov_left",
-        "right_view_fov_right",
-        "yaw",
-        "pitch"
+        "leftx",
+        "lefty",
+        "rightx",
+        "righty",
     ])?;
 
     Ok(())
