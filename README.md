@@ -29,6 +29,17 @@ compute_eye_gaze_location() returns the eye gaze projection location for both le
 
 The results for every received eye gaze data will be saved in a csv file. (please update the file path in alvr\server\src\EyeNexus_Config.rs -> EYEGAZEPROCESSING_FILE_PATH)
 
+# Dynamic Foveated Rendering 
+We integrate the dynamic foveated rendering with the original ALVR server rendering code. When the eye gaze projection location changes, we re-initialize the foveated rendering shader with newest eye gaze point and do foveated rendering.
+
+Check alvr\server\cpp\platform\win32\CEncoder.cpp -> CopyToStaging() for more details.
+
+# Dynamic Foveated Video Encoding
+alvr\server\cpp\platform\win32\VideoEncoderNVENC.cpp -> GenQPDeltaMap()
+
+We integrate the FVE with the original ALVR frame encoding code. However, as the foveation center of foveated rendering changes during streaming, we need to update the params required during the gaze point projection (More details in paper). The high level procedure can be described as : 1. Collect foveation controller C from network monitoring component. 2. Collect eye gaze location in original frame. 3. Updating the projection required params. (alvr\server\cpp\platform\win32\NvEncoder.cpp -> Update_decompress_params()) 4. Project the eye gaze location from original frame to foveated rendered frame. (alvr\server\cpp\platform\win32\NvEncoder.cpp -> decompress_x(), decompress_y()) 5. Calculate the QO for each marco block in QP Map (alvr\server\cpp\platform\win32\NvEncoder.cpp -> EyeNexus_CalculateQPOffsetValue_leftEye(), EyeNexus_CalculateQPOffsetValue_rightEye())6. Do encoding
+
+
 
 
 
