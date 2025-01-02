@@ -1,5 +1,40 @@
 <p align="center"> <img width="500" src="resources/alvr_combined_logo_hq.png"/> </p>
 
+# Frame Data Collection
+We provide the game frame data collection for original game frame, foveated rendered frame, encoded game frame. In case you need it, please check the following proceudres, otherwise, it should be closed.
+
+The configuration files path: alvr\server\cpp\analyze_use
+
+config.cpp -> save_rframe_lock controls the saving of original game frame and foveated rendered frame
+
+config.cpp -> save_eframe_lock controls the saving of encoded game frame
+
+config.cpp -> filename_s controls the saving folder path
+
+helper_f.cpp -> save_frame_feq controls the frame saving frequency(e.g.,  save_frame_feq = 500 -> Every 500 frames, save once. Notably, the saving process cost computational resource, a high saving frequency may be harmful for the main system.)
+
+# System Pipeline Latency Collection
+We provide the system pipeline latency collection, for each game frame, the system records the latency of each pipeline component. 
+
+alvr\server\src\EyeNexus_Config.rs -> STATISTICS_FILE_PATH controls the saving file path.
+
+For more details, please refer to the function report_statistics_MTP() in alvr\server\src\statistics.rs | Please ignoring the statistics file generarted by the function write_latency_to_csv() in alvr\server\src\statistics.rs->report_statistics(), this may contains some records with error in latency.
+
+# Eye Gaze Process
+Server receives the tracking packets and extract eye gaze raw data.
+
+For more details, please refer to the tracking_receive_thread and compute_eye_gaze_location() in alvr\server\src\connection.rs.
+
+compute_eye_gaze_location() returns the eye gaze projection location for both left eye frame and right eye frame -> (leftx, lefty, rightx, righty)
+
+The results for every received eye gaze data will be saved in a csv file. (please update the file path in alvr\server\src\EyeNexus_Config.rs -> EYEGAZEPROCESSING_FILE_PATH)
+
+
+
+
+
+
+
 # ALVR - Air Light VR
 
 [![badge-discord][]][link-discord] [![badge-matrix][]][link-matrix] [![badge-opencollective][]][link-opencollective]
