@@ -42,7 +42,11 @@ alvr\server\cpp\platform\win32\VideoEncoderNVENC.cpp -> GenQPDeltaMap()
 We integrate the FVE with the original ALVR frame encoding code. However, as the foveation center of foveated rendering changes during streaming, we need to update the params required during the gaze point projection (More details in paper). The high level procedure can be described as : 1. Collect foveation controller C from network monitoring component. 2. Collect eye gaze location in original frame. 3. Updating the projection required params. (alvr\server\cpp\platform\win32\NvEncoder.cpp -> Update_decompress_params()) 4. Project the eye gaze location from original frame to foveated rendered frame. (alvr\server\cpp\platform\win32\NvEncoder.cpp -> decompress_x(), decompress_y()) 5. Calculate the QO for each marco block in QP Map (alvr\server\cpp\platform\win32\NvEncoder.cpp -> EyeNexus_CalculateQPOffsetValue_leftEye(), EyeNexus_CalculateQPOffsetValue_rightEye()) 6. Do encoding
 
 # Network Congestion Control
-We provide the queuing delay gradient method to infer the state of the network and controls the foveation controller C to achieve adaptive foveated video encoding, for more details, please refer to
+alvr\server\src\congestion_controller.rs
+
+We provide the queuing delay gradient method to infer the state of the network and controls the foveation controller C to achieve adaptive foveated video encoding, for more details, please refer to the paper.
+
+
 
 
 
