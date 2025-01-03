@@ -8,6 +8,7 @@
 			, m_gaze_location_lefty(1168)
 			, m_gaze_location_rightx(3216)
 			, m_gaze_location_righty(1168)
+			, fr_freq(5)
 		{
 			m_encodeFinished.Set();
 			last_centerShiftX = 0.4;
@@ -87,6 +88,7 @@
 		{
 			m_presentationTime = presentationTime;
 			m_targetTimestampNs = targetTimestampNs;
+			// dynamic foveated rendering 
 			int frame_width = Settings::Instance().m_renderWidth/2;
 			int frame_height = Settings::Instance().m_renderHeight;
 			m_gaze_location_leftx = int(GetEyeGazeLocationLeftX());
@@ -94,7 +96,7 @@
 			m_gaze_location_rightx = int(GetEyeGazeLocationRightX());
 			m_gaze_location_righty = int(frame_height-GetEyeGazeLocationRightY());
 			
-			if (times%10 == 0){//
+			if (times%fr_freq == 0){
 				last_centerShiftX = (static_cast<float>(m_gaze_location_leftx) / (static_cast<float>(frame_width)) - 0.5)*2.0;
 				last_centerShiftY = (static_cast<float>(m_gaze_location_lefty) / (static_cast<float>(frame_height)) - 0.5)*2.0;
 			}
@@ -105,11 +107,10 @@
 			if (last_centerShiftY == 0.0){
 				last_centerShiftY = 0.1;
 			}
-			// float centerShiftX = static_cast<float>(m_gaze_location_leftx) / 2144.0;
-			// float centerShiftY = static_cast<float>(m_gaze_location_lefty) / 2366.0;
+			
 			m_FrameRender->Startup(last_centerShiftX, last_centerShiftY);
-			m_FrameRender->Reinit_ffr(last_centerShiftX, last_centerShiftY);
-			//Info("reinit called for : %d centershiftX is : %d centershiftY : %d\n",targetTimestampNs,centerShiftX, centerShiftY);
+			m_FrameRender->Reinit_ffr(last_centerShiftX, last_centerShiftY);// re-init foveated rendering shader
+			// dynamic foveated rendering 
 			m_FrameRender->RenderFrame(pTexture, bounds, layerCount, recentering, message, debugText);
 			return true;
 		}

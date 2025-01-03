@@ -72,6 +72,7 @@
 
 		float last_centerShiftX;
 		float last_centerShiftY;
-		long long times;
+		long long times;// frame counts
+		long long fr_freq;// dynamic foveated rendering frequency. Default is 5, a lower value cost higher computational resource
 	};
 

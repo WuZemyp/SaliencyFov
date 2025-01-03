@@ -91,14 +91,6 @@ void VideoEncoderNVENC::Shutdown()
 void VideoEncoderNVENC::Transmit(ID3D11Texture2D *pTexture, uint64_t presentationTime, uint64_t targetTimestampNs, bool insertIDR, int leftxIn, int leftyIn, int rightxIn, int rightyIn,float header_centerShiftX, float header_centerShiftY)
 {
 	auto params = GetDynamicEncoderParams();
-	// int leftxfromrust=int(GetEyeGazeLocationLeftX());
-	// int leftyfromrust=int(GetEyeGazeLocationLeftY());
-	// int rightxfromrust=int(GetEyeGazeLocationRightX());
-	// int rightyfromrust=int(GetEyeGazeLocationRightY());
-	// int leftx=int(GetEyeGazeLocationLeftX());
-	// int lefty=int(2336-GetEyeGazeLocationLeftY());
-	// int rightx=int(GetEyeGazeLocationRightX());
-	// int righty=int(2336-GetEyeGazeLocationRightY());
 	int leftx = leftxIn;
 	int lefty = leftyIn;
 	int rightx = rightxIn;
@@ -107,15 +99,6 @@ void VideoEncoderNVENC::Transmit(ID3D11Texture2D *pTexture, uint64_t presentatio
 	int frame_height = Settings::Instance().m_renderHeight;
 	float centerShiftX = static_cast<float>(leftx) / (static_cast<float>(frame_width));
 	float centerShiftY = static_cast<float>(lefty) / (static_cast<float>(frame_height));
-	// leftx=1072;
-	// lefty=1168;
-	// rightx=1072+2144;
-	// righty=1168;
-	// std::ofstream file("passing.csv", std::ios_base::app);
-    // Write the integers to the file, separated by commas
-    // file << leftxfromrust << "," << leftyfromrust << "," << rightxfromrust << "," << rightyfromrust << std::endl;
-    // Close the file
-    // file.close();
 	if (params.updated) {
 		m_bitrateInMBits = params.bitrate_bps / 1'000'000;
 		NV_ENC_INITIALIZE_PARAMS initializeParams = { NV_ENC_INITIALIZE_PARAMS_VER };
@@ -142,29 +125,6 @@ void VideoEncoderNVENC::Transmit(ID3D11Texture2D *pTexture, uint64_t presentatio
 		picParams.encodePicFlags = NV_ENC_PIC_FLAG_FORCEIDR;
 	}
 	m_NvNecoder->EncodeFrame(vPacket, targetTimestampNs, &picParams, leftx,lefty,rightx,righty);
-	//reencode
-	//bool reencode = false;
-	// for (std::vector<uint8_t> &packet : vPacket)
-	// {
-	// 	if ((int)packet.size() > last_encoded_size) {
-	// 		reencode = true;
-	// 		break;
-	// 	}
-	// }
-	// if (reencode && !reencode_last_time){
-	// 	//c = c*0.5;
-	// 	m_NvNecoder->reencode_qp_map();
-	// 	vPacket.clear();
-	// 	ID3D11Texture2D *pInputTexture = reinterpret_cast<ID3D11Texture2D*>(encoderInputFrame->inputPtr);
-	// 	m_pD3DRender->GetContext()->CopyResource(pInputTexture, pTexture);
-	// 	NV_ENC_PIC_PARAMS picParams = {};
-	// 	picParams.encodePicFlags = NV_ENC_PIC_FLAG_FORCEIDR;
-	// 	m_NvNecoder->EncodeFrame(vPacket, targetTimestampNs, &picParams);
-	// 	reencode_last_time = true;
-	// }else{
-	// 	reencode_last_time = false;
-	// }
-	
 	for (std::vector<uint8_t> &packet : vPacket)
 	{
 		if (fpOut) {

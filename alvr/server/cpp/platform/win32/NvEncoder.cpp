@@ -768,39 +768,7 @@ void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint
         m_qpDeltaMapSize = m_numBlocks * sizeof(NV_ENC_EMPHASIS_MAP_LEVEL);
         qp_map = new int8_t[m_qpDeltaMapSize];
     }
-    // frameCounter ++;
-    // if(frameCounter%3 == 1){
-    //     changed = true;
-    //     // frameCounter = 0;
-    // }
-    // if(changed){
-    //     std::normal_distribution<float> QP_dis(5, 80);
-    //     std::uniform_int_distribution<int> int_dis(0, 3);
-    //     int direct_value1 = QP_dis(generator);
-    //     int direct_value2 = QP_dis(generator);
-    //     int gap1 = int_dis(generator);
-    //     int gap2 = int_dis(generator);
-
-    //     if(QP1 <= direct_value1){
-    //         QP1 += gap1;
-    //     }
-    //     else{
-    //         QP1 -= gap1;
-    //     }
-    //     if(QP2 <= direct_value2){
-    //         QP2 += gap2;
-    //     }
-    //     else{
-    //         QP2 -= gap2;
-    //     }
-    //     QP1 = QP_clip(QP1);
-    //     QP2 = QP_clip(QP2);
-    //     QP1 = -5;
-    //     QP2 = 25;
-
-    //     r1 = 18;
-    //     r2 = 47 -r1;
-    // }
+    //update the params required during the transfering from gaze point in original frame to gaze point in foveated rendered frame
     int frame_width = Settings::Instance().m_renderWidth/2;
 	int frame_height = Settings::Instance().m_renderHeight;
     float centerShiftX = static_cast<float>(leftX) / (static_cast<float>(frame_width));// left eye location x
@@ -816,31 +784,31 @@ void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint
 
 
 
-    float edgeSizeX = targetEyeWidth-centerSizeX*targetEyeWidth;//1179.2
-	float edgeSizeY = targetEyeHeight-centerSizeY*targetEyeHeight;//1401.6
+    float edgeSizeX = targetEyeWidth-centerSizeX*targetEyeWidth;
+	float edgeSizeY = targetEyeHeight-centerSizeY*targetEyeHeight;
 
-	float centerSizeXAligned = 1.-ceil(edgeSizeX/(edgeRatioX*2.))*(edgeRatioX*2.)/targetEyeWidth;//0.447761194
-	float centerSizeYAligned = 1.-ceil(edgeSizeY/(edgeRatioY*2.))*(edgeRatioY*2.)/targetEyeHeight;//0.3964041096
+	float centerSizeXAligned = 1.-ceil(edgeSizeX/(edgeRatioX*2.))*(edgeRatioX*2.)/targetEyeWidth;
+	float centerSizeYAligned = 1.-ceil(edgeSizeY/(edgeRatioY*2.))*(edgeRatioY*2.)/targetEyeHeight;
 
-	float edgeSizeXAligned = targetEyeWidth-centerSizeXAligned*targetEyeWidth;//1184
-	float edgeSizeYAligned = targetEyeHeight-centerSizeYAligned*targetEyeHeight;//1410
+	float edgeSizeXAligned = targetEyeWidth-centerSizeXAligned*targetEyeWidth;
+	float edgeSizeYAligned = targetEyeHeight-centerSizeYAligned*targetEyeHeight;
 
-	float centerShiftXAligned = ceil(centerShiftX*edgeSizeXAligned/(edgeRatioX*2.))*(edgeRatioX*2.)/edgeSizeXAligned;//0.4054054054
-	float centerShiftYAligned = ceil(centerShiftY*edgeSizeYAligned/(edgeRatioY*2.))*(edgeRatioY*2.)/edgeSizeYAligned;//0.1063829787
+	float centerShiftXAligned = ceil(centerShiftX*edgeSizeXAligned/(edgeRatioX*2.))*(edgeRatioX*2.)/edgeSizeXAligned;
+	float centerShiftYAligned = ceil(centerShiftY*edgeSizeYAligned/(edgeRatioY*2.))*(edgeRatioY*2.)/edgeSizeYAligned;
 
-    float foveationScaleX = (centerSizeXAligned+(1.-centerSizeXAligned)/edgeRatioX);//0.5858208955
-	float foveationScaleY = (centerSizeYAligned+(1.-centerSizeYAligned)/edgeRatioY);//0.5171232877
+    float foveationScaleX = (centerSizeXAligned+(1.-centerSizeXAligned)/edgeRatioX);
+	float foveationScaleY = (centerSizeYAligned+(1.-centerSizeYAligned)/edgeRatioY);
 
-	this->optimizedEyeWidth = foveationScaleX*targetEyeWidth;//1256
-	this->optimizedEyeHeight = foveationScaleY*targetEyeHeight;//1208
+	this->optimizedEyeWidth = foveationScaleX*targetEyeWidth;
+	this->optimizedEyeHeight = foveationScaleY*targetEyeHeight;
 
-    // float centerShiftXAligned = ceil(centerShiftX*1184./(4.0*2.))*(4.0*2.)/1184.;
-    // float centerShiftYAligned = ceil(centerShiftY*1410./(5.0*2.))*(5.0*2.)/1410.;
+
     Update_decompress_params(centerShiftXAligned,centerShiftYAligned);
-
-    int r_leftX = (decompress_x(leftX)+15)/16;
+    //finish updating the params required during the transfering from gaze point in original frame to gaze point in foveated rendered frame
+    
+    int r_leftX = (decompress_x(leftX)+15)/16;//eye gaze point project from original game frame coordinate system to foveated rendered frame corrdinate system
     int r_leftY = (decompress_y(leftY)+15)/16;
-    int r_rightX = (decompress_x(rightX)+15)/16;//-map_width
+    int r_rightX = (decompress_x(rightX)+15)/16;
     int r_rightY = (decompress_y(rightY)+15)/16;
     changed = changed || (r_leftX!=m_leftX) || (r_leftY!=m_leftY) || (r_rightX!=m_rightX) || (r_rightY!=m_rightY);
     m_leftX = r_leftX; 
@@ -848,12 +816,9 @@ void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint
     m_rightX = r_rightX;
     m_rightY = r_rightY;
     this->W = map_width*2/12;
-    //QP1=15;
-    //QP2=45
     qp_buf << targetTimestampNs;
     float c = 188.;
-    c = controller_c;
-    //c = 20.;
+    c = controller_c;//get the foveation controller
     if(changed){
 
 
@@ -870,8 +835,8 @@ void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint
             for(int i = 0; i < map_height; i++){
                 for(int j = 0; j < map_width*2; j++){    
 
-                    int qp_offset_basedOnLeft = EyeNexus_CalculateQPOffsetValue_leftEye(j,i,c);
-                    int qp_offset_basedOnRight = EyeNexus_CalculateQPOffsetValue_rightEye(j,i,c);
+                    int qp_offset_basedOnLeft = EyeNexus_CalculateQPOffsetValue_leftEye(j,i,c);// QO calculation
+                    int qp_offset_basedOnRight = EyeNexus_CalculateQPOffsetValue_rightEye(j,i,c);// QO calculation
                     int final_qp_offset = (((qp_offset_basedOnLeft) < (qp_offset_basedOnRight)) ? (qp_offset_basedOnLeft) : (qp_offset_basedOnRight));
                     qp_map[i*map_width*2+j] = static_cast<int8_t>(final_qp_offset);
                     //qp_buf<< ", "<<final_qp_offset;
@@ -880,31 +845,6 @@ void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint
             }
         }
 
-        
-
-
-
-
-
-
-
-        // int radius1 = map_width*r1/94;
-        // for(int i=0; i<map_width; i++){
-        //     for(int j=0; j<map_height; j++){
-        //         if(i>=r_leftX-radius1 && i <=r_leftX+radius1 && j>=r_leftY-radius1 && j<=r_leftY+radius1 && (i-r_leftX)*(i-r_leftX)+(j-r_leftY)*(j-r_leftY)<=radius1*radius1){
-        //             qp_map[j*map_width*2+i] = static_cast<int8_t>(QP1);
-        //         }
-        //         else{
-        //             qp_map[j*map_width*2+i] = static_cast<int8_t>(QP2);
-        //         }
-        //         if(i>=r_rightX-radius1 && i<=r_rightX+radius1 && j>=r_rightY-radius1 && j<=r_rightY+radius1 && (i-r_rightX)*(i-r_rightX)+(j-r_rightY)*(j-r_rightY)<=radius1*radius1){
-        //             qp_map[j*map_width*2+i+map_width] = static_cast<int8_t>(QP1);
-        //         }
-        //         else{
-        //             qp_map[j*map_width*2+i+map_width] = static_cast<int8_t>(QP2);
-        //         }
-        //     }
-        // }
     }
      
     // qp_buf<< ", " << leftX 

@@ -10,7 +10,7 @@ use std::fs::OpenOptions;
 use std::error::Error;
 const FULL_REPORT_INTERVAL: Duration = Duration::from_millis(1000);
 use chrono::{Utc, TimeZone, Local, format::{strftime, StrftimeItems}};
-use crate::{bitrate, congestion_controller::BandwidthUsage, EYENEXUS_MANAGER};
+use crate::{bitrate, congestion_controller::BandwidthUsage, EYENEXUS_MANAGER, EyeNexus_Config::{self, STATISTICS_FILE_PATH}};
 pub struct HistoryFrame {
     target_timestamp: Duration,
     tracking_received: Instant,
@@ -459,22 +459,22 @@ impl StatisticsManager {
                     .max(Duration::from_millis(1))
                     .as_secs_f32();
                 let mut bitrate_mbps = bitrate_mbps;
-                let mut timestamp_for_this_frame=(frame.target_timestamp.as_nanos()).to_string();
+                let mut timestamp_for_this_frame=(frame.target_timestamp.as_nanos()).to_string();// unique key for a frame
                 let mut interval_trackingReceived_framePresentInVirtualDevice=(game_time_latency.as_secs_f32()*1000.).to_string();//game latency
                 let mut interval_framePresentInVirtualDevice_frameComposited=(server_compositor_latency.as_secs_f32()*1000.).to_string();//composite latency
                 let mut interval_frameComposited_VideoEncoded=(encoder_latency.as_secs_f32() * 1000.).to_string();//encode latency
                 let mut interval_VideoReceivedByClient_VideoDecoded=(client_stats.video_decode.as_secs_f32() * 1000.).to_string();//decode latency
-                let mut interval_network=((network_latency.as_secs_f32()*1000.).to_string());//network latency(interval_trackingsend_trackingreceived+interval_encodedVideoSend_encodedVideoReceived)
-                let mut client_dequeue_latency=(client_stats.video_decoder_queue.as_secs_f32()*1000.).to_string();
-                let mut client_rendering_latency=(client_stats.rendering.as_secs_f32()*1000.).to_string();
-                let mut client_vsync_queue_latency=(client_stats.vsync_queue.as_secs_f32()*1000.).to_string();
-                let mut interval_total_pipeline=(frame.total_pipeline_latency_MTP.as_secs_f32() * 1000.).to_string();//total pipeline latency wz repeat
+                let mut interval_network=((network_latency.as_secs_f32()*1000.).to_string());//network latency
+                let mut client_dequeue_latency=(client_stats.video_decoder_queue.as_secs_f32()*1000.).to_string();//decoder queue latency
+                let mut client_rendering_latency=(client_stats.rendering.as_secs_f32()*1000.).to_string();// client reverse foveated rendering latency
+                let mut client_vsync_queue_latency=(client_stats.vsync_queue.as_secs_f32()*1000.).to_string();// client v-sync latency
+                let mut interval_total_pipeline=(frame.total_pipeline_latency_MTP.as_secs_f32() * 1000.).to_string();//total pipeline latency (MTP)
                 let encoded_frame_size = frame.video_packet_bytes_MTP.to_string();
                 let experiment_target_timestamp=Local::now().format("%Y%m%d_%H%M%S").to_string();
                 let controller_string = frame.frame_c_MTP.to_string();
                 let latency_strings=[timestamp_for_this_frame,interval_trackingReceived_framePresentInVirtualDevice,interval_framePresentInVirtualDevice_frameComposited,interval_frameComposited_VideoEncoded,interval_VideoReceivedByClient_VideoDecoded,interval_network,
             client_dequeue_latency,client_rendering_latency,client_vsync_queue_latency,interval_total_pipeline,encoded_frame_size,server_fps.to_string(),client_fps.to_string(),bitrate_mbps,recv_bitrate_mbps,controller_string,experiment_target_timestamp];
-                write_MTP_latency_to_csv("statistics_mtp.csv", latency_strings);
+                write_MTP_latency_to_csv(STATISTICS_FILE_PATH, latency_strings);
                 frame.MTP_reported = true;
 
 

@@ -1,7 +1,7 @@
 #include "config.h"
 
-bool save_rframe_lock = false;
-bool save_eframe_lock = false;
+bool save_rframe_lock = false;// for saving original game frame and foveated rendered frame
+bool save_eframe_lock = false;// for saving encoded game frame
 
 bool get_eframe_lock() {
     return save_eframe_lock;

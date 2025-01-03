@@ -12,6 +12,7 @@ mod statistics;
 mod tracking;
 mod web_server;
 mod congestion_controller;
+mod EyeNexus_Config;
 #[allow(
     non_camel_case_types,
     non_upper_case_globals,

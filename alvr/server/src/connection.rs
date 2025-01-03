@@ -1,5 +1,9 @@
 use crate::{
-    bitrate::{self, BitrateManager}, congestion_controller::EyeNexus_Controller, face_tracking::FaceTrackingSink, hand_gestures::{trigger_hand_gesture_actions, HandGestureManager, HAND_GESTURE_BUTTON_SET}, haptics, input_mapping::ButtonMappingManager, sockets::WelcomeSocket, statistics::StatisticsManager, tracking::{self, TrackingManager}, FfiFov, FfiViewsConfig, VideoPacket, BITRATE_MANAGER, DECODER_CONFIG, EYENEXUS_MANAGER, EYE_GAZE_DATA, LIFECYCLE_STATE, SERVER_DATA_MANAGER, STATISTICS_MANAGER, VIDEO_MIRROR_SENDER, VIDEO_RECORDING_FILE
+    bitrate::{self, BitrateManager}, congestion_controller::EyeNexus_Controller, face_tracking::FaceTrackingSink, 
+    hand_gestures::{trigger_hand_gesture_actions, HandGestureManager, HAND_GESTURE_BUTTON_SET}, haptics, input_mapping::ButtonMappingManager, 
+    sockets::WelcomeSocket, statistics::StatisticsManager, tracking::{self, TrackingManager}, FfiFov, FfiViewsConfig, VideoPacket, BITRATE_MANAGER, 
+    DECODER_CONFIG, EYENEXUS_MANAGER, EYE_GAZE_DATA, LIFECYCLE_STATE, SERVER_DATA_MANAGER, STATISTICS_MANAGER, VIDEO_MIRROR_SENDER, VIDEO_RECORDING_FILE,
+    EyeNexus_Config::{self, STATISTICS_FILE_PATH, EYEGAZEPROCESSING_FILE_PATH},
 };
 use alvr_audio::AudioDevice;
 use alvr_common::{
@@ -834,8 +838,8 @@ fn connection_pipeline(
     let tracking_receive_thread = thread::spawn({
         let tracking_manager = Arc::clone(&tracking_manager);
         let hand_gesture_manager = Arc::clone(&hand_gesture_manager);
-        create_csv_file("eyegaze.csv");
-        create_csv_file_tracking("tracking.csv");
+        create_csv_file(EYEGAZEPROCESSING_FILE_PATH);
+        //create_csv_file_tracking(EYEGAZEPROCESSING_FILE_PATH);
         let mut gestures_button_mapping_manager =
             settings.headset.controllers.as_option().map(|config| {
                 ButtonMappingManager::new_automatic(
@@ -951,12 +955,7 @@ fn connection_pipeline(
                         let FD=face_data.eye_gazes.clone();
                         let global_quat_array=FD[0].unwrap().orientation.to_array();
                         let global_position_array=FD[0].unwrap().position.to_array();
-                        //let mut head_quat_array=todo!();
-                        //let mut head_position_array=todo!();
-                        //tracking.device_motions.iter().find(|(id, _)| *id == *HEAD_ID).map(|(_, m)|head_quat_array=m.pose.orientation.to_array()).unwrap_or_default();
-                        //tracking.device_motions.iter().find(|(id, _)| *id == *HEAD_ID).map(|(_, m)|head_position_array=m.pose.position.to_array()).unwrap_or_default();
-                        //head_quat_array[0].to_string(),head_quat_array[1].to_string(),head_quat_array[2].to_string(),head_quat_array[3].to_string(),//head orientation
-                        //head_position_array[0].to_string(),head_position_array[1].to_string(),head_position_array[2].to_string(),//head postion
+                       
                         let left_view_quat_array=tracking.left_view_pose.orientation.to_array();
                         let left_view_position_array=tracking.left_view_pose.position.to_array();
                         let right_view_quat_array=tracking.right_view_pose.orientation.to_array();
@@ -964,7 +963,7 @@ fn connection_pipeline(
                         
                         let frame_width=stream_view_resolution.x as i32;
                         let frame_height=stream_view_resolution.y as i32;
-                        // let (left_frame_x,left_frame_y,right_frame_x,right_frame_y)= compute_eye_gaze_location(frame_width,frame_height,left_yaw as f64, left_pitch as f64, -0.6981317, 0.6981317, tracking.left_view_fov.up as f64, tracking.left_view_fov.down as f64, -0.6981317, 0.6981317, tracking.right_view_fov.up as f64, tracking.right_view_fov.down as f64);
+                        
                         let (left_frame_x,left_frame_y,right_frame_x,right_frame_y)= compute_eye_gaze_location(frame_width,frame_height,left_yaw as f64, left_pitch as f64, tracking.left_view_fov.left as f64, tracking.left_view_fov.right as f64, tracking.left_view_fov.up as f64, tracking.left_view_fov.down as f64, tracking.right_view_fov.left as f64, tracking.right_view_fov.right as f64, tracking.right_view_fov.up as f64, tracking.right_view_fov.down as f64);
                         BITRATE_MANAGER.lock().report_eye_gaze_update(left_frame_x, left_frame_y, right_frame_x, right_frame_y);
                         let mut data = EYE_GAZE_DATA.lock().unwrap();
@@ -984,7 +983,7 @@ fn connection_pipeline(
                         // right_view_position_array[0].to_string(),right_view_position_array[1].to_string(),right_view_position_array[2].to_string(),//right eye view position
                         // tracking.right_view_fov.up.to_string(),tracking.right_view_fov.down.to_string(),tracking.right_view_fov.left.to_string(),tracking.right_view_fov.right.to_string(),left_yaw.to_string(),left_pitch.to_string(),
                         let eye_data=[tracking_ts,left_frame_x.to_string(),left_frame_y.to_string(),right_frame_x.to_string(),right_frame_y.to_string()];//right eye fov
-                        write_latency_to_csv("eyegaze.csv", eye_data);
+                        write_EyeGaze_to_csv(EYEGAZEPROCESSING_FILE_PATH, eye_data);
                         
                     }
 
@@ -1077,7 +1076,7 @@ fn connection_pipeline(
     let statistics_thread = thread::spawn({
         let client_hostname = client_hostname.clone();
         create_csv_file_for_statistics("statistics.csv");
-        create_csv_file_for_MTP_statistics("statistics_mtp.csv");
+        create_csv_file_for_MTP_statistics(STATISTICS_FILE_PATH);
         move || {
             while is_streaming(&client_hostname) {
                 let data = match statics_receiver.recv(STREAMING_RECV_TIMEOUT) {
@@ -1537,7 +1536,7 @@ pub extern "C" fn send_haptics(device_id: u64, duration_s: f32, frequency: f32, 
             .ok();
     }
 }
-fn write_latency_to_csv(filename: &str, latency_values: [String; 5]) -> Result<(), Box<dyn Error>> {
+fn write_EyeGaze_to_csv(filename: &str, latency_values: [String; 5]) -> Result<(), Box<dyn Error>> {
 
     let mut file = OpenOptions::new().write(true).append(true).open(filename)?;
     let mut writer = Writer::from_writer(file);
