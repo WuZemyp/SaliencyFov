@@ -14,6 +14,8 @@ config.cpp -> filename_s controls the saving folder path
 helper_f.cpp -> save_frame_feq controls the frame saving frequency(e.g.,  save_frame_feq = 500 -> Every 500 frames, save once. Notably, the saving process cost computational resource, a high saving frequency may be harmful for the main system.)
 
 # System Pipeline Latency Collection
+Game latency, composition latency(server rendering), encoding latency, network latency, decoder queue latency, decode latency, client reverse rendering latency, v-sync latency
+
 We provide the system pipeline latency collection, for each game frame, the system records the latency of each pipeline component. 
 
 alvr\server\src\EyeNexus_Config.rs -> STATISTICS_FILE_PATH controls the saving file path.
@@ -37,9 +39,10 @@ Check alvr\server\cpp\platform\win32\CEncoder.cpp -> CopyToStaging() for more de
 # Dynamic Foveated Video Encoding
 alvr\server\cpp\platform\win32\VideoEncoderNVENC.cpp -> GenQPDeltaMap()
 
-We integrate the FVE with the original ALVR frame encoding code. However, as the foveation center of foveated rendering changes during streaming, we need to update the params required during the gaze point projection (More details in paper). The high level procedure can be described as : 1. Collect foveation controller C from network monitoring component. 2. Collect eye gaze location in original frame. 3. Updating the projection required params. (alvr\server\cpp\platform\win32\NvEncoder.cpp -> Update_decompress_params()) 4. Project the eye gaze location from original frame to foveated rendered frame. (alvr\server\cpp\platform\win32\NvEncoder.cpp -> decompress_x(), decompress_y()) 5. Calculate the QO for each marco block in QP Map (alvr\server\cpp\platform\win32\NvEncoder.cpp -> EyeNexus_CalculateQPOffsetValue_leftEye(), EyeNexus_CalculateQPOffsetValue_rightEye())6. Do encoding
+We integrate the FVE with the original ALVR frame encoding code. However, as the foveation center of foveated rendering changes during streaming, we need to update the params required during the gaze point projection (More details in paper). The high level procedure can be described as : 1. Collect foveation controller C from network monitoring component. 2. Collect eye gaze location in original frame. 3. Updating the projection required params. (alvr\server\cpp\platform\win32\NvEncoder.cpp -> Update_decompress_params()) 4. Project the eye gaze location from original frame to foveated rendered frame. (alvr\server\cpp\platform\win32\NvEncoder.cpp -> decompress_x(), decompress_y()) 5. Calculate the QO for each marco block in QP Map (alvr\server\cpp\platform\win32\NvEncoder.cpp -> EyeNexus_CalculateQPOffsetValue_leftEye(), EyeNexus_CalculateQPOffsetValue_rightEye()) 6. Do encoding
 
-
+# Network Congestion Control
+We provide the queuing delay gradient method to infer the state of the network and controls the foveation controller C to achieve adaptive foveated video encoding, for more details, please refer to
 
 
 
