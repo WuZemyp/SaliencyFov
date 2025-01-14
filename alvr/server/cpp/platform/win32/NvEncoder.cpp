@@ -500,20 +500,20 @@ void NvEncoder::EncodeFrame(std::vector<std::vector<uint8_t>> &vPacket, uint64_t
     bool open_efile = false;
     int count = get_frame_count();
 
-    if(count%(get_save_frame_feq()*2)==get_save_frame_feq()){
+    if(count%(get_save_frame_feq()*2)==get_save_frame_feq() && get_eframe_lock()){
         (*pPicParams).encodePicFlags = NV_ENC_PIC_FLAG_FORCEIDR;
         open_efile = true;
         save_frame = true;
     }
-    if(count%(get_save_frame_feq()*2)==(get_save_frame_feq()*2-4)){
+    if(count%(get_save_frame_feq()*2)==(get_save_frame_feq()*2-4) && get_eframe_lock()){
         (*pPicParams).encodePicFlags = NV_ENC_PIC_FLAG_FORCEIDR;
         open_efile = true;
     }
-    if(count%(get_save_frame_feq()*2)>=(get_save_frame_feq()*2-4)||count%(get_save_frame_feq()*2)==0){
+    if(count%(get_save_frame_feq()*2)>=(get_save_frame_feq()*2-4)||count%(get_save_frame_feq()*2)==0 && get_eframe_lock()){
         save_frame = true;
         count += get_save_frame_feq()*2-count%(get_save_frame_feq()*2);
     }
-    if(count%get_save_frame_feq()==0){
+    if(count%get_save_frame_feq()==0 && get_eframe_lock()){
         eye_buf << targetTimestampNs << "," << leftx << "," << lefty << "," << rightx << "," << righty << "," << count << std::endl;
     }
 
