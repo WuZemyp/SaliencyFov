@@ -269,7 +269,7 @@ impl StatisticsManager {
             last_vsync_time: Instant::now(),
             frame_interval: nominal_server_frame_interval,
             last_nominal_bitrate_stats: NominalBitrateStats::default(),
-            EyeNexus_controller_c : 188.,
+            EyeNexus_controller_c : 18.,
             start_time : Instant::now(),
             last_action : 1,
             last_change_time : Utc::now().timestamp_micros(),

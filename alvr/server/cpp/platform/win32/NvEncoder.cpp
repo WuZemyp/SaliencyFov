@@ -817,7 +817,7 @@ void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint
     m_rightY = r_rightY;
     this->W = map_width*2/12;
     qp_buf << targetTimestampNs;
-    float c = 188.;
+    float c = 18.;
     c = controller_c;//get the foveation controller
     if(changed){
 

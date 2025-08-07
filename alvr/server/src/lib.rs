@@ -435,7 +435,7 @@ pub unsafe extern "C" fn HmdDriverFactory(
         right_y
     }
     extern "C" fn get_controller_c() -> f32{
-        let mut c = 188.;
+        let mut c = 18.;
         let now = Utc::now().timestamp_micros();
         if let Some(stats_manager) = &mut *STATISTICS_MANAGER.lock() {
             c = stats_manager.EyeNexus_controller_c;
@@ -445,11 +445,11 @@ pub unsafe extern "C" fn HmdDriverFactory(
             //     c = c*0.5;
             // }
             if (now - last_change) > ((1.*1000.*1000./72.*2.) as i64) && last_action == 0{
-                c = c*0.9;
+                c = c*0.8;
 
             }
-            if c < 6.{
-                c = 6.;
+            if c < 0.1{
+                c = 0.1;
             }
             stats_manager.EyeNexus_controller_c = c;
         }

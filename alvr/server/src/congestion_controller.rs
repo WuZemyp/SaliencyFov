@@ -378,7 +378,7 @@ impl EyeNexus_Controller {
 
         //controller change
         if self.action == 0{
-            self.controller_c = (self.controller_c as f32 *0.9);//decrease 0.8
+            self.controller_c = (self.controller_c as f32 *0.8);//decrease 0.8
             if self.controller_c < self.link_capacity_.LowerBound(){
                 self.link_capacity_.Reset();
             }
@@ -391,7 +391,7 @@ impl EyeNexus_Controller {
             if self.link_capacity_.has_estimate(){
                 self.controller_c += 0.1;
             }else{
-                self.controller_c += 0.4;//add 1
+                self.controller_c += 0.2;//add 1
             }
             
         }
@@ -402,8 +402,8 @@ impl EyeNexus_Controller {
         //clamp C to [1,188]
         if self.controller_c >80.{
             self.controller_c = 80.;
-        }else if self.controller_c < 6.{
-            self.controller_c = 6.;
+        }else if self.controller_c < 0.1{
+            self.controller_c = 0.1;
         }
         return self.controller_c;
     }
