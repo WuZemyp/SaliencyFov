@@ -1,0 +1,9 @@
+1. check SaliencyPredictor.cpp model path: modelPath = "C:/Users/Ze/Desktop/Ieevr/code/EyeNexus/best_model_ts.pt"; // working dir
+2. $env:LIBTORCH = "C:\libtorch_cpu\libtorch"; $env:SALIENCY_MODEL_PATH = "C:\Users\Ze\Desktop\Ieevr\code\EyeNexus\best_model_ts.pt"
+3. export model: python export_model.py
+4. cargo xtask prepare-deps --platform windows --gpl; cargo xtask prepare-deps --platform android
+5. cargo xtask build-client --release
+6. cargo build -p alvr_server --release --features "gpl saliency"
+7. cargo xtask build-streamer --release --gpl
+8. Copy-Item -Force .\target\release\alvr_server.dll .\build\alvr_streamer_windows\bin\win64\driver_alvr_server.dll
+9. cargo xtask run-streamer --no-rebuild
