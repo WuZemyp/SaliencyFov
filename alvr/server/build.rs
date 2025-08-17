@@ -147,15 +147,16 @@ fn main() {
         if let Ok(libtorch) = env::var("LIBTORCH") {
             let libdir = PathBuf::from(&libtorch).join("lib");
             println!("cargo:rustc-link-search=native={}", libdir.to_string_lossy());
-            // CPU-only libs (no cuda)
+            // CPU + CUDA libs
             for lib in [
                 "c10",
                 "torch_cpu",
+                "torch_cuda",
                 "torch",
             ] {
                 println!("cargo:rustc-link-lib={}", lib);
             }
-            // On Windows, LibTorch CPU uses MSVC runtime; no extra stdc++ linking
+            // On Windows, LibTorch uses MSVC runtime; no extra stdc++ linking
         }
     }
 

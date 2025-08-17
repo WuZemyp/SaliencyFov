@@ -1,3 +1,4 @@
+CPU one:
 1. check SaliencyPredictor.cpp model path: modelPath = "C:/Users/Ze/Desktop/Ieevr/code/EyeNexus/best_model_ts.pt"; // working dir
 2. $env:LIBTORCH = "C:\libtorch_cpu\libtorch"; $env:SALIENCY_MODEL_PATH = "C:\Users\Ze\Desktop\Ieevr\code\EyeNexus\best_model_ts.pt"
 3. export model: python export_model.py
@@ -6,4 +7,18 @@
 6. cargo build -p alvr_server --release --features "gpl saliency"
 7. cargo xtask build-streamer --release --gpl
 8. Copy-Item -Force .\target\release\alvr_server.dll .\build\alvr_streamer_windows\bin\win64\driver_alvr_server.dll
+9. Copy-Item -Force "C:\libtorch_cpu\libtorch\lib\*.dll" ".\build\alvr_streamer_windows\bin\win64\"
 9. cargo xtask run-streamer --no-rebuild
+
+GPU one:
+1. Export the model: python export_model.py
+2. Prepare ALVR dependency: cargo xtask prepare-deps --platform windows --gpl
+3. cargo xtask prepare-deps --platform android
+4. Make the system env (check SaliencyPredictor.cpp model path): $env:LIBTORCH = "C:\libtorch_cuda\libtorch"; $env:SALIENCY_MODEL_PATH = "C:\Users\Ze\Desktop\Ieevr\code\EyeNexus\best_model_ts.pt"
+5. Build alvr server: cargo xtask build-streamer --release --gpl
+6. Build alvr client: cargo xtask build-client --release
+7. Copy ddl: Copy-Item -Force "C:\libtorch_cuda\libtorch\lib\*.dll" ".\build\alvr_streamer_windows\bin\win64\"
+- for second build. only 8,9,10
+8. Build saliency ddl: cargo build -p alvr_server --release --features "gpl saliency"
+9. Copy ddl: Copy-Item -Force .\target\release\alvr_server.dll .\build\alvr_streamer_windows\bin\win64\driver_alvr_server.dll
+10. Cargo xtask run-streamer --no-rebuild

@@ -10,6 +10,11 @@
 #include <sstream>
 #include <cerrno>
 #include <cstring>
+#ifdef ALVR_SALIENCY
+#include <torch/torch.h>
+#include <c10/core/InferenceMode.h>
+#endif
+#include <Windows.h>
 
 SaliencyPredictor::SaliencyPredictor(std::shared_ptr<CD3DRender> d3dRender)
 	: m_d3d(std::move(d3dRender)) {}
@@ -18,6 +23,43 @@ SaliencyPredictor::~SaliencyPredictor() {}
 
 bool SaliencyPredictor::Initialize() {
 	m_downscaled.resize(3 * kOutH * kOutW);
+	// Basic env diagnostics
+	try {
+		auto cwd = std::filesystem::current_path().string();
+		Info("SaliencyPredictor: CWD=%s\n", cwd.c_str());
+	} catch (...) {}
+	{
+		char* pathEnv = getenv("PATH");
+		if (pathEnv) {
+			Info("SaliencyPredictor: PATH begins: %.200s ...\n", pathEnv);
+		}
+	}
+	// DLL probing (keep loaded)
+	{
+		static HMODULE hTorchCuda = LoadLibraryA("torch_cuda.dll");
+		if (hTorchCuda) {
+			Info("SaliencyPredictor: LoadLibrary(torch_cuda.dll) OK\n");
+		} else {
+			Error("SaliencyPredictor: LoadLibrary(torch_cuda.dll) FAILED (err=%lu)\n", GetLastError());
+		}
+		static HMODULE hNvCuda = LoadLibraryA("nvcuda.dll");
+		if (hNvCuda) {
+			Info("SaliencyPredictor: LoadLibrary(nvcuda.dll) OK\n");
+		} else {
+			Error("SaliencyPredictor: LoadLibrary(nvcuda.dll) FAILED (err=%lu)\n", GetLastError());
+		}
+		static HMODULE hC10Cuda = LoadLibraryA("c10_cuda.dll");
+		if (hC10Cuda) {
+			Info("SaliencyPredictor: LoadLibrary(c10_cuda.dll) OK\n");
+		} else {
+			Error("SaliencyPredictor: LoadLibrary(c10_cuda.dll) FAILED (err=%lu)\n", GetLastError());
+		}
+		// Some PyTorch builds split CUDA kernels
+		static HMODULE hTorchCudaCu = LoadLibraryA("torch_cuda_cu.dll");
+		if (hTorchCudaCu) {
+			Info("SaliencyPredictor: LoadLibrary(torch_cuda_cu.dll) OK\n");
+		}
+	}
 #ifdef ALVR_SALIENCY
 	try {
 		// Model path from env var or default next to binaries
@@ -34,6 +76,26 @@ bool SaliencyPredictor::Initialize() {
 		m_module.eval();
 		m_modelLoaded = true;
 		Info("SaliencyPredictor: loaded model: %s\n", modelPath.c_str());
+		// Report resolved module locations
+		char modPath[MAX_PATH] = {0};
+		HMODULE hTorch = GetModuleHandleA("torch.dll");
+		if (hTorch && GetModuleFileNameA(hTorch, modPath, MAX_PATH)) {
+			Info("SaliencyPredictor: torch.dll => %s\n", modPath);
+		}
+		HMODULE hTorchCpu = GetModuleHandleA("torch_cpu.dll");
+		if (hTorchCpu && GetModuleFileNameA(hTorchCpu, modPath, MAX_PATH)) {
+			Info("SaliencyPredictor: torch_cpu.dll => %s\n", modPath);
+		}
+		HMODULE hC10 = GetModuleHandleA("c10.dll");
+		if (hC10 && GetModuleFileNameA(hC10, modPath, MAX_PATH)) {
+			Info("SaliencyPredictor: c10.dll => %s\n", modPath);
+		}
+		HMODULE hTorchCudaNow = GetModuleHandleA("torch_cuda.dll");
+		if (hTorchCudaNow && GetModuleFileNameA(hTorchCudaNow, modPath, MAX_PATH)) {
+			Info("SaliencyPredictor: torch_cuda.dll => %s\n", modPath);
+		} else {
+			Info("SaliencyPredictor: torch_cuda.dll not loaded yet\n");
+		}
 	} catch (const c10::Error& e) {
 		Error("SaliencyPredictor: failed to load model: %s\n", e.what());
 		m_modelLoaded = false;
@@ -117,22 +179,67 @@ void SaliencyPredictor::Process(ID3D11Texture2D* srcTexture) {
 #ifdef ALVR_SALIENCY
 	auto t_before_infer = t_after_resize;
 	if (m_modelLoaded) {
+		// Try to move module to CUDA once; avoid calling torch::cuda::is_available
+		static bool module_on_cuda = false;
+		static bool tried_cuda = false;
+		if (!tried_cuda) {
+			tried_cuda = true;
+			bool cuda_dlls_loaded = GetModuleHandleA("torch_cuda.dll") != nullptr && GetModuleHandleA("c10_cuda.dll") != nullptr;
+			if (!cuda_dlls_loaded) {
+				Error("SaliencyPredictor: CUDA DLLs not loaded, skip moving module to CUDA\n");
+			} else {
+			try {
+				m_module.to(torch::kCUDA);
+				module_on_cuda = true;
+				Info("SaliencyPredictor: moved module to CUDA\n");
+				// Warm-up a few iters to initialize cuDNN kernels
+				try {
+					c10::InferenceMode no_grad(true);
+					std::vector<torch::jit::IValue> winputs;
+					winputs.emplace_back(torch::zeros({1,3,kOutH,kOutW}, torch::dtype(torch::kFloat32).device(torch::kCUDA)));
+					winputs.emplace_back(torch::jit::IValue());
+					for (int i = 0; i < 3; ++i) {
+						auto wout = m_module.forward(winputs).toTuple();
+					}
+					torch::cuda::synchronize();
+					Info("SaliencyPredictor: CUDA warm-up done\n");
+				} catch (const c10::Error&) {}
+			} catch (const c10::Error& e) {
+				module_on_cuda = false;
+				Error("SaliencyPredictor: failed to move module to CUDA: %s\n", e.what());
+			}
+			}
+		}
+
 		// Build input tensor (1,3,192,256) float
 		auto options = torch::TensorOptions().dtype(torch::kFloat32);
 		torch::Tensor x = torch::from_blob(m_downscaled.data(), {1, 3, kOutH, kOutW}, options).clone();
-		static torch::Tensor hidden; // persist across frames; undefined at start
+		if (module_on_cuda) {
+			x = x.to(torch::kCUDA);
+		}
+		static torch::Tensor hidden; // persist across frames
 		std::vector<torch::jit::IValue> inputs;
 		inputs.emplace_back(x);
 		if (hidden.defined()) {
+			if (module_on_cuda && !hidden.is_cuda()) {
+				hidden = hidden.to(torch::kCUDA);
+			}
 			inputs.emplace_back(hidden);
 		} else {
 			inputs.emplace_back(torch::jit::IValue()); // None for Optional[Tensor]
 		}
 		try {
+			c10::InferenceMode no_grad(true);
+			Info("SaliencyPredictor: input device: %s, hidden defined=%d on=%s\n",
+				x.is_cuda() ? "cuda" : "cpu",
+				(int)hidden.defined(),
+				hidden.defined() ? (hidden.is_cuda() ? "cuda" : "cpu") : "n/a");
 			auto out = m_module.forward(inputs).toTuple();
+			if (module_on_cuda) { torch::cuda::synchronize(); }
 			torch::Tensor sal = out->elements()[0].toTensor();
 			hidden = out->elements()[1].toTensor();
 			m_lastSaliency = sal.detach();
+			Info("SaliencyPredictor: output device: %s\n", m_lastSaliency.is_cuda() ? "cuda" : "cpu");
 			Info("SaliencyPredictor: inference ok. saliency sizes=%lld dims, last=(%lld,%lld)\n", (long long)m_lastSaliency.dim(), (long long)m_lastSaliency.size(-2), (long long)m_lastSaliency.size(-1));
 			// quick stats
 			auto cpu = m_lastSaliency.flatten().to(torch::kFloat32).cpu();
@@ -145,6 +252,7 @@ void SaliencyPredictor::Process(ID3D11Texture2D* srcTexture) {
 	} else {
 		Error("SaliencyPredictor: model not loaded\n");
 	}
+#endif
 	auto t_after_infer = std::chrono::high_resolution_clock::now();
 	double ms_resize = std::chrono::duration<double, std::milli>(t_after_resize - t_begin).count();
 	double ms_infer = std::chrono::duration<double, std::milli>(t_after_infer - t_after_resize).count();
@@ -153,43 +261,44 @@ void SaliencyPredictor::Process(ID3D11Texture2D* srcTexture) {
 
 	// Dump saliency to CSV on every frame
 	m_frameCounter++;
-	if (m_lastSaliency.defined()) {
-		try {
-			auto sal = m_lastSaliency.squeeze(); // (1,1,H,W) -> (H,W) or (1,H,W) -> (H,W)
-			sal = sal.contiguous();
-			const int H = (int)sal.size(-2);
-			const int W = (int)sal.size(-1);
-			std::ostringstream fname;
-			fname << "saliency_" << std::setw(6) << std::setfill('0') << m_frameCounter << ".csv";
-			auto out_path = (std::filesystem::current_path() / fname.str()).string();
-			std::ofstream ofs(out_path, std::ios::out | std::ios::trunc);
-			if (!ofs.is_open()) {
-				Error("SaliencyPredictor: failed to open CSV for write: %s (errno=%d %s)\n", out_path.c_str(), errno, std::strerror(errno));
-			} else {
-				ofs.setf(std::ios::fixed); ofs<<std::setprecision(6);
-				auto cpu = sal.cpu();
-				if (cpu.dtype() == torch::kFloat32) {
-					float* data = cpu.data_ptr<float>();
-					for (int y = 0; y < H; ++y) {
-						for (int x = 0; x < W; ++x) {
-							ofs << data[y * W + x];
-							if (x + 1 < W) ofs << ",";
-						}
-						ofs << "\n";
-					}
-					Info("SaliencyPredictor: wrote CSV %s (%dx%d)\n", out_path.c_str(), W, H);
-				} else {
-					Error("SaliencyPredictor: unexpected tensor dtype, csv not written\n");
-				}
-				ofs.close();
-			}
-		} catch (const std::exception& ex) {
-			Error("SaliencyPredictor: failed to write saliency csv: %s\n", ex.what());
-		} catch (...) {
-			Error("SaliencyPredictor: failed to write saliency csv (unknown)\n");
-		}
-	} else {
-		Error("SaliencyPredictor: saliency undefined, skipping CSV\n");
-	}
+#ifdef ALVR_SALIENCY
+	// if (m_lastSaliency.defined()) {
+	// 	try {
+	// 		auto sal = m_lastSaliency.squeeze(); // (1,1,H,W) -> (H,W) or (1,H,W) -> (H,W)
+	// 		sal = sal.contiguous();
+	// 		const int H = (int)sal.size(-2);
+	// 		const int W = (int)sal.size(-1);
+	// 		std::ostringstream fname;
+	// 		fname << "saliency_" << std::setw(6) << std::setfill('0') << m_frameCounter << ".csv";
+	// 		auto out_path = (std::filesystem::current_path() / fname.str()).string();
+	// 		std::ofstream ofs(out_path, std::ios::out | std::ios::trunc);
+	// 		if (!ofs.is_open()) {
+	// 			Error("SaliencyPredictor: failed to open CSV for write: %s (errno=%d %s)\n", out_path.c_str(), errno, std::strerror(errno));
+	// 		} else {
+	// 			ofs.setf(std::ios::fixed); ofs<<std::setprecision(6);
+	// 			auto cpu = sal.cpu();
+	// 			if (cpu.dtype() == torch::kFloat32) {
+	// 				float* data = cpu.data_ptr<float>();
+	// 				for (int y = 0; y < H; ++y) {
+	// 					for (int x = 0; x < W; ++x) {
+	// 						ofs << data[y * W + x];
+	// 						if (x + 1 < W) ofs << ",";
+	// 					}
+	// 					ofs << "\n";
+	// 				}
+	// 				Info("SaliencyPredictor: wrote CSV %s (%dx%d)\n", out_path.c_str(), W, H);
+	// 			} else {
+	// 				Error("SaliencyPredictor: unexpected tensor dtype, csv not written\n");
+	// 			}
+	// 			ofs.close();
+	// 		}
+	// 	} catch (const std::exception& ex) {
+	// 		Error("SaliencyPredictor: failed to write saliency csv: %s\n", ex.what());
+	// 	} catch (...) {
+	// 		Error("SaliencyPredictor: failed to write saliency csv (unknown)\n");
+	// 	}
+	// } else {
+	// 	Error("SaliencyPredictor: saliency undefined, skipping CSV\n");
+	// }
 #endif
 } 
