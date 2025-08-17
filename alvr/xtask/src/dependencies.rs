@@ -55,21 +55,38 @@ Cflags: -I${{includedir}}
 }
 
 pub fn prepare_ffmpeg_windows() {
-    let download_path = afs::deps_dir().join("windows");
-    command::download_and_extract_zip(
-        &format!(
-            "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/{}",
-            "ffmpeg-n5.1-latest-win64-gpl-shared-5.1.zip"
-        ),
-        &download_path,
-    )
-    .unwrap();
+	let download_path = afs::deps_dir().join("windows");
+	// Use the master-latest GPL shared build for win64 from BtbN releases
+	let file = "ffmpeg-master-latest-win64-gpl-shared.zip";
+	let url = format!(
+		"https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/{file}"
+	);
+	if command::download_and_extract_zip(&url, &download_path).is_err() {
+		// Fallback: try a recent autobuild tag if 'latest' fails
+		let tag = "autobuild-2025-08-16-14-01"; // adjust as needed
+		let url_fallback = format!(
+			"https://github.com/BtbN/FFmpeg-Builds/releases/download/{tag}/{file}"
+		);
+		command::download_and_extract_zip(&url_fallback, &download_path).unwrap();
+	}
 
-    fs::rename(
-        download_path.join("ffmpeg-n5.1-latest-win64-gpl-shared-5.1"),
-        download_path.join("ffmpeg"),
-    )
-    .unwrap();
+	// Try to locate the extracted directory automatically and rename to ffmpeg
+	let entries = fs::read_dir(&download_path).unwrap();
+	let mut moved = false;
+	for entry in entries.flatten() {
+		let path = entry.path();
+		if path.is_dir() {
+			let name = path.file_name().unwrap().to_string_lossy();
+			if name.starts_with("ffmpeg-") && name.contains("win64-gpl-shared") {
+				fs::rename(&path, download_path.join("ffmpeg")).unwrap();
+				moved = true;
+				break;
+			}
+		}
+	}
+	if !moved {
+		panic!("FFmpeg folder not found after extraction. Please update dependencies.rs");
+	}
 }
 
 pub fn prepare_windows_deps(skip_admin_priv: bool) {

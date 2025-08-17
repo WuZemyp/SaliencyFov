@@ -11,6 +11,10 @@
 #include <array>
 #include <algorithm>
 
+extern "C" {
+	#include <libavutil/opt.h>
+}
+
 VideoEncoderSW::VideoEncoderSW(std::shared_ptr<CD3DRender> d3dRender
 	, int width, int height)
 	: m_d3dRender(d3dRender)
@@ -57,20 +61,13 @@ void VideoEncoderSW::Initialize() {
 	av_dict_set(&opt, "preset", "ultrafast", 0);
 	av_dict_set(&opt, "tune", "zerolatency", 0);
 
-	m_codecContext->profile = FF_PROFILE_H264_HIGH;
-	switch (settings.m_entropyCoding) {
-		case ALVR_CABAC:
-			av_dict_set(&opt, "coder", "ac", 0);
-			break;
-		case ALVR_CAVLC:
-			av_dict_set(&opt, "coder", "vlc", 0);
-			break;
-	}
+	// Set profile using options API for compatibility with newer FFmpeg
+	av_opt_set(m_codecContext->priv_data, "profile", "high", 0);
 
 	m_codecContext->width = m_renderWidth;
 	m_codecContext->height = m_renderHeight;
-	m_codecContext->time_base = AVRational{1, (int)(1e9)};
-	m_codecContext->framerate = AVRational{settings.m_refreshRate, 1};
+	m_codecContext->time_base = { 1, m_refreshRate };
+	m_codecContext->framerate = { m_refreshRate, 1 };
 	m_codecContext->sample_aspect_ratio = AVRational{1, 1};
 	m_codecContext->pix_fmt = AV_PIX_FMT_YUV420P;
 	m_codecContext->max_b_frames = 0;

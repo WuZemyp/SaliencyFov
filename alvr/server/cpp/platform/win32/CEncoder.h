@@ -18,6 +18,7 @@
 	#include "VideoEncoderSW.h"
 #endif
 #include "alvr_server/IDRScheduler.h"
+#include "SaliencyPredictor.h"
 
 
 	using Microsoft::WRL::ComPtr;
@@ -62,6 +63,7 @@
 		uint64_t m_targetTimestampNs;
 
 		std::shared_ptr<FrameRender> m_FrameRender;
+		std::unique_ptr<SaliencyPredictor> m_saliency;
 
 		IDRScheduler m_scheduler;
 

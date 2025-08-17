@@ -21,6 +21,9 @@ fn main() {
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
     let cpp_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap()).join("cpp");
 
+    // Detect features passed to the crate (build script cannot use cfg(feature))
+    let saliency_enabled = env::var("CARGO_FEATURE_SALIENCY").is_ok();
+
     let platform_subpath = match platform_name.as_str() {
         "windows" => "cpp/platform/win32",
         "linux" => "cpp/platform/linux",
@@ -90,6 +93,17 @@ fn main() {
     #[cfg(feature = "gpl")]
     build.define("ALVR_GPL", None);
 
+    // Optional: LibTorch include (for future CPU inference in C++)
+    if saliency_enabled {
+        build.define("ALVR_SALIENCY", None);
+        if let Ok(libtorch) = env::var("LIBTORCH") {
+            let include = PathBuf::from(&libtorch).join("include");
+            let include_torch = PathBuf::from(&libtorch).join("include/torch/csrc/api/include");
+            build.include(include);
+            build.include(include_torch);
+        }
+    }
+
     build.compile("bindings");
 
     if use_ffmpeg {
@@ -125,6 +139,23 @@ fn main() {
         #[cfg(windows)]
         for lib in ["avutil", "avfilter", "avcodec", "swscale"] {
             println!("cargo:rustc-link-lib={lib}");
+        }
+    }
+
+    // Link LibTorch libraries if enabled
+    if saliency_enabled {
+        if let Ok(libtorch) = env::var("LIBTORCH") {
+            let libdir = PathBuf::from(&libtorch).join("lib");
+            println!("cargo:rustc-link-search=native={}", libdir.to_string_lossy());
+            // CPU-only libs (no cuda)
+            for lib in [
+                "c10",
+                "torch_cpu",
+                "torch",
+            ] {
+                println!("cargo:rustc-link-lib={}", lib);
+            }
+            // On Windows, LibTorch CPU uses MSVC runtime; no extra stdc++ linking
         }
     }
 

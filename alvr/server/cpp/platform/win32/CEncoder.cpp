@@ -31,6 +31,8 @@
 			m_FrameRender->Startup();
 			uint32_t encoderWidth, encoderHeight;
 			m_FrameRender->GetEncodingResolution(&encoderWidth, &encoderHeight);
+			m_saliency = std::make_unique<SaliencyPredictor>(d3dRender);
+			m_saliency->Initialize();
 
 			Exception vceException;
 			Exception nvencException;
@@ -112,6 +114,10 @@
 			m_FrameRender->Reinit_ffr(last_centerShiftX, last_centerShiftY);// re-init foveated rendering shader
 			// dynamic foveated rendering 
 			m_FrameRender->RenderFrame(pTexture, bounds, layerCount, recentering, message, debugText);
+			// Run saliency downscale/readback for next-step inference
+			if (m_saliency) {
+				m_saliency->Process(m_FrameRender->GetTexture(false, m_targetTimestampNs).Get());
+			}
 			return true;
 		}
 
