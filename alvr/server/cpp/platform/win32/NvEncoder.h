@@ -259,6 +259,9 @@ public:
     uint32_t GetEncoderBufferCount() const { return m_nEncoderBuffer; }
     void GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint64_t targetTimestampNs, float c);
 
+    // New: update saliency map (left-eye) for use in QP map generation
+    void UpdateSaliency(const float* s, int w, int h, uint64_t ts);
+
     int CalculateQPValue_leftEye(int i, int j);
 
     int CalculateQPValue_rightEye(int i, int j);
@@ -517,5 +520,10 @@ private:
     int W = (4288+15)/16/12;
     float optimizedEyeWidth;
     float optimizedEyeHeight;
+    // Saliency cache
+    std::vector<float> m_saliency;
+    int m_salW = 0;
+    int m_salH = 0;
+    uint64_t m_salTs = 0;
 };
 

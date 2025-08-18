@@ -19,6 +19,8 @@ public:
 
 	bool Initialize();
 	void Process(ID3D11Texture2D* srcTexture);
+	// Return latest post-processed saliency as CPU floats in [0,1], row-major HxW.
+	bool GetLastSaliencyCpu(std::vector<float>& out, int& width, int& height);
 
 private:
 	std::shared_ptr<CD3DRender> m_d3d;

@@ -305,3 +305,11 @@ void VideoEncoderNVENC::FillEncodeConfig(NV_ENC_INITIALIZE_PARAMS &initializePar
 	encodeConfig.rcParams.rateControlMode = NV_ENC_PARAMS_RC_CONSTQP;
 	encodeConfig.rcParams.constQP = {11,11,11};//x264 crf mode default value
 }
+
+void VideoEncoderNVENC::SetSaliencyMap(const std::vector<float>& sal, int w, int h, uint64_t ts)
+{
+	if (m_NvNecoder) {
+		// forward to NvEncoder (add method there)
+		m_NvNecoder->UpdateSaliency(sal.data(), w, h, ts);
+	}
+}

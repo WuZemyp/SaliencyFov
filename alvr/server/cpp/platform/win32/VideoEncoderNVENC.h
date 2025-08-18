@@ -4,6 +4,7 @@
 #include "shared/d3drender.h"
 #include "VideoEncoder.h"
 #include "NvEncoderD3D11.h"
+#include <vector>
 
 enum AdaptiveQuantizationMode {
 	SpatialAQ = 1,
@@ -22,6 +23,8 @@ public:
 	void Shutdown();
 
 	void Transmit(ID3D11Texture2D *pTexture, uint64_t presentationTime, uint64_t targetTimestampNs, bool insertIDR, int leftx, int lefty, int rightx, int righty,float header_centerShiftX, float header_centerShiftY);
+	// Provide latest saliency map (HxW floats in [0,1]) for left eye at timestamp
+	void SetSaliencyMap(const std::vector<float>& sal, int w, int h, uint64_t ts);
 private:
 	void FillEncodeConfig(NV_ENC_INITIALIZE_PARAMS &initializeParams, int refreshRate, int renderWidth, int renderHeight, uint64_t bitrate_bps);
 

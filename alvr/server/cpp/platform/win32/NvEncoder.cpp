@@ -758,70 +758,107 @@ void NvEncoder::reencode_qp_map(){
     }
 }
 
+void NvEncoder::UpdateSaliency(const float* s, int w, int h, uint64_t ts) {
+	if (!s || w <= 0 || h <= 0) return;
+	m_saliency.assign(s, s + (size_t)w * (size_t)h);
+	m_salW = w;
+	m_salH = h;
+	m_salTs = ts;
+}
+
 void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint64_t targetTimestampNs, float controller_c){
-    //initialize QPMap
-    bool changed = false;
-    if(qp_map==nullptr){
-        map_width = (m_nWidth+15)/16/2;
-        map_height = (m_nHeight+15)/16;
-        m_numBlocks = (m_nWidth+15)/16*(m_nHeight+15)/16;
-        m_qpDeltaMapSize = m_numBlocks * sizeof(NV_ENC_EMPHASIS_MAP_LEVEL);
-        qp_map = new int8_t[m_qpDeltaMapSize];
-    }
-    
-    int r_leftX = 67;
-    int r_leftY = 73;
-    int r_rightX = 200;
-    int r_rightY = 73;
-    changed = changed || (r_leftX!=m_leftX) || (r_leftY!=m_leftY) || (r_rightX!=m_rightX) || (r_rightY!=m_rightY);
-    m_leftX = r_leftX; 
-    m_leftY = r_leftY;
-    m_rightX = r_rightX;
-    m_rightY = r_rightY;
-    this->W = map_width*2/12;
-    qp_buf << targetTimestampNs;
-    float c = 18.;
-    c = controller_c;//get the foveation controller
-    if(changed){
+	//initialize QPMap
+	frameCounter++;
+	bool changed = false;
+	if(qp_map==nullptr){
+		map_width = (m_nWidth+15)/16/2; // half for left eye
+		map_height = (m_nHeight+15)/16;
+		m_numBlocks = (m_nWidth+15)/16*(m_nHeight+15)/16;
+		m_qpDeltaMapSize = m_numBlocks * sizeof(NV_ENC_EMPHASIS_MAP_LEVEL);
+		qp_map = new int8_t[m_qpDeltaMapSize];
+		changed = true;
+	}
 
+	// If we have a saliency map, use it to fill QP map (left half) and mirror to right
+	if (!m_saliency.empty() && m_salW > 0 && m_salH > 0) {
+		// Map saliency grid (m_salW x m_salH) to macroblock grid (map_width x map_height) for each half
+		const int half_mb_w = map_width; // left half macroblocks
+		const int mb_h = map_height;
+		for (int i = 0; i < mb_h; ++i) {
+			// y in saliency
+			int yS = (int)std::round((double)i * (double)(m_salH - 1) / (double)(mb_h - 1 > 0 ? mb_h - 1 : 1));
+			for (int j = 0; j < half_mb_w; ++j) {
+				int xS = (int)std::round((double)j * (double)(m_salW - 1) / (double)(half_mb_w - 1 > 0 ? half_mb_w - 1 : 1));
+				float s = m_saliency[yS * m_salW + xS]; // [0,1]
+				// Map saliency to QP offset: more salient → lower QP offset
+				int qp_offset = (int)std::round((1.0f - s) * QO_Max);
+				if (qp_offset < -MAX_QP_OFFSET) qp_offset = -MAX_QP_OFFSET;
+				if (qp_offset > MAX_QP_OFFSET) qp_offset = MAX_QP_OFFSET;
+				// Left half
+				qp_map[i * (half_mb_w * 2) + j] = (int8_t)qp_offset;
+				// Right half: mirror index across the center
+				int jR = j + half_mb_w;
+				qp_map[i * (half_mb_w * 2) + jR] = (int8_t)qp_offset;
+			}
+		}
+		// Dump every 100 frames
+		if (frameCounter % 100 == 0) {
+			std::ofstream ofs(get_path_head()+"qpmap_"+std::to_string(targetTimestampNs)+".csv");
+			for (int i = 0; i < map_height; ++i) {
+				for (int j = 0; j < map_width*2; ++j) {
+					ofs << (int)qp_map[i*map_width*2 + j];
+					if (j + 1 < map_width*2) ofs << ",";
+				}
+				ofs << "\n";
+			}
+		}
+		return;
+	}
 
-        if (c==0.0){
-            for(int i = 0; i < map_height; i++){
-                for(int j = 0; j < map_width*2; j++){    
-                    qp_map[i*map_width*2+j] = static_cast<int8_t>(24);
-                    //qp_buf<< ", "<<24;
-                }
-                //qp_buf<<std::endl;
-            }
-        }
-        else{
-            for(int i = 0; i < map_height; i++){
-                for(int j = 0; j < map_width*2; j++){    
-
-                    int qp_offset_basedOnLeft = EyeNexus_CalculateQPOffsetValue_leftEye(j,i,c);// QO calculation
-                    int qp_offset_basedOnRight = EyeNexus_CalculateQPOffsetValue_rightEye(j,i,c);// QO calculation
-                    int final_qp_offset = (((qp_offset_basedOnLeft) < (qp_offset_basedOnRight)) ? (qp_offset_basedOnLeft) : (qp_offset_basedOnRight));
-                    qp_map[i*map_width*2+j] = static_cast<int8_t>(final_qp_offset);
-                    //qp_buf<< ", "<<final_qp_offset;
-                }
-                //qp_buf<<std::endl;
-            }
-        }
-
-    }
-     
-    // qp_buf<< ", " << leftX 
-    // << ", " << leftY
-    // << ", " << rightX
-    // << ", " << rightY
-    // << ", " << m_leftX
-    // << ", " << m_leftY
-    // << ", " << m_rightX
-    // << ", " << m_rightY
-    // << ", " << m_nWidth
-    // << ", " << m_nHeight
-    // << ", " << map_width
-    // << ", " << map_height << std::endl;
+	// // Fallback: legacy gaze-based map
+	// int r_leftX = 67;
+	// int r_leftY = 73;
+	// int r_rightX = 200;
+	// int r_rightY = 73;
+	// changed = changed || (r_leftX!=m_leftX) || (r_leftY!=m_leftY) || (r_rightX!=m_rightX) || (r_rightY!=m_rightY);
+	// m_leftX = r_leftX; 
+	// m_leftY = r_leftY;
+	// m_rightX = r_rightX;
+	// m_rightY = r_rightY;
+	// this->W = map_width*2/12;
+	// qp_buf << targetTimestampNs;
+	// float c = 18.;
+	// c = controller_c;//get the foveation controller
+	// if(changed){
+	// 	if (c==0.0){
+	// 		for(int i = 0; i < map_height; i++){
+	// 			for(int j = 0; j < map_width*2; j++){	
+	// 				qp_map[i*map_width*2+j] = static_cast<int8_t>(24);
+	// 			}
+	// 		}
+	// 	}
+	// 	else{
+	// 		for(int i = 0; i < map_height; i++){
+	// 			for(int j = 0; j < map_width*2; j++){	
+	// 				int qp_offset_basedOnLeft = EyeNexus_CalculateQPOffsetValue_leftEye(j,i,c);// QO calculation
+	// 				int qp_offset_basedOnRight = EyeNexus_CalculateQPOffsetValue_rightEye(j,i,c);// QO calculation
+	// 				int final_qp_offset = (((qp_offset_basedOnLeft) < (qp_offset_basedOnRight)) ? (qp_offset_basedOnLeft) : (qp_offset_basedOnRight));
+	// 				qp_map[i*map_width*2+j] = static_cast<int8_t>(final_qp_offset);
+	// 			}
+	// 		}
+	// 	}
+	// }
+	// // Dump every 100 frames (fallback path)
+	// if (frameCounter % 100 == 0) {
+	// 	std::ofstream ofs(get_path_head()+"qpmap_"+std::to_string(targetTimestampNs)+".csv");
+	// 	for (int i = 0; i < map_height; ++i) {
+	// 		for (int j = 0; j < map_width*2; ++j) {
+	// 			ofs << (int)qp_map[i*map_width*2 + j];
+	// 			if (j + 1 < map_width*2) ofs << ",";
+	// 		}
+	// 		ofs << "\n";
+	// 	}
+	// }
 }
 
 // void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint64_t targetTimestampNs){

@@ -10,6 +10,7 @@
 #include <sstream>
 #include <cerrno>
 #include <cstring>
+#include "../../analyze_use/helper_f.h"
 #ifdef ALVR_SALIENCY
 #include <torch/torch.h>
 #include <c10/core/InferenceMode.h>
@@ -439,6 +440,22 @@ void SaliencyPredictor::Process(ID3D11Texture2D* srcTexture) {
 				// Cast back to original dtype if needed
 				if (s_blur.scalar_type() != s.scalar_type()) s_blur = s_blur.to(s.scalar_type());
 				m_lastSaliency = s_blur;
+				// Dump every 100 frames right after post-process
+				bool shouldDump = ((m_frameCounter + 1) % 100) == 0;
+				if (shouldDump) {
+					auto cpu2d = m_lastSaliency.squeeze().to(torch::kFloat32).to(torch::kCPU).contiguous();
+					int h = (int)cpu2d.size(0);
+					int w = (int)cpu2d.size(1);
+					std::ofstream ofs(get_path_head()+"saliency_"+std::to_string((long long)(m_frameCounter+1))+".csv");
+					const float* ptr = cpu2d.data_ptr<float>();
+					for (int y = 0; y < h; ++y) {
+						for (int x = 0; x < w; ++x) {
+							ofs << ptr[y * w + x];
+							if (x + 1 < w) ofs << ",";
+						}
+						ofs << "\n";
+					}
+				}
 			}
 			Info("SaliencyPredictor: output device: %s\n", m_lastSaliency.is_cuda() ? "cuda" : "cpu");
 			Info("SaliencyPredictor: inference ok. saliency sizes=%lld dims, last=(%lld,%lld)\n", (long long)m_lastSaliency.dim(), (long long)m_lastSaliency.size(-2), (long long)m_lastSaliency.size(-1));
@@ -466,4 +483,27 @@ void SaliencyPredictor::Process(ID3D11Texture2D* srcTexture) {
 #ifdef ALVR_SALIENCY
 	// CSV dump removed
 #endif
-} 
+}
+
+#ifdef ALVR_SALIENCY
+bool SaliencyPredictor::GetLastSaliencyCpu(std::vector<float>& out, int& width, int& height) {
+	if (!m_lastSaliency.defined()) return false;
+	auto s = m_lastSaliency;
+	// Expect [1,1,H,W]
+	if (s.dim() == 4 && s.size(0) == 1 && s.size(1) == 1) {
+		width = (int)s.size(3);
+		height = (int)s.size(2);
+	} else if (s.dim() == 2) {
+		height = (int)s.size(0);
+		width = (int)s.size(1);
+	} else {
+		return false;
+	}
+	auto cpu = s.squeeze().to(torch::kFloat32).to(torch::kCPU).contiguous();
+	out.resize((size_t)width * (size_t)height);
+	std::memcpy(out.data(), cpu.data_ptr<float>(), out.size() * sizeof(float));
+	return true;
+}
+#else
+bool SaliencyPredictor::GetLastSaliencyCpu(std::vector<float>&, int&, int&) { return false; }
+#endif 

@@ -1,5 +1,6 @@
 #include "CEncoder.h"
 #include "alvr_server/Settings.h"
+#include "VideoEncoderNVENC.h"
 
 		CEncoder::CEncoder()
 			: m_bExiting(false)
@@ -94,6 +95,17 @@
 			// Run saliency downscale/readback for next-step inference
 			if (m_saliency) {
 				m_saliency->Process(m_FrameRender->GetTexture(false, m_targetTimestampNs).Get());
+				// Forward latest saliency map (left eye) to encoder for QP map generation
+				std::vector<float> saliency;
+				int salW = 0, salH = 0;
+				if (m_saliency->GetLastSaliencyCpu(saliency, salW, salH)) {
+					if (m_videoEncoder) {
+						auto *nvenc = dynamic_cast<VideoEncoderNVENC*>(m_videoEncoder.get());
+						if (nvenc) {
+							nvenc->SetSaliencyMap(saliency, salW, salH, m_targetTimestampNs);
+						}
+					}
+				}
 			}
 			return true;
 		}
