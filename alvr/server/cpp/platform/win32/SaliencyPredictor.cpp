@@ -15,11 +15,27 @@
 #include <c10/core/InferenceMode.h>
 #endif
 #include <Windows.h>
+#include <cuda_runtime_api.h>
+#include <cuda_d3d11_interop.h>
 
 SaliencyPredictor::SaliencyPredictor(std::shared_ptr<CD3DRender> d3dRender)
 	: m_d3d(std::move(d3dRender)) {}
 
 SaliencyPredictor::~SaliencyPredictor() {}
+
+static bool CompileShader(const char* source, const char* entry, const char* profile, ID3DBlob** blob) {
+	ComPtr<ID3DBlob> code;
+	ComPtr<ID3DBlob> err;
+	auto hr = D3DCompile(source, strlen(source), nullptr, nullptr, nullptr, entry, profile, 0, 0, &code, &err);
+	if (FAILED(hr)) {
+		if (err) {
+			Error("SaliencyPredictor: shader compile error: %s\n", (const char*)err->GetBufferPointer());
+		}
+		return false;
+	}
+	*blob = code.Detach();
+	return true;
+}
 
 bool SaliencyPredictor::Initialize() {
 	m_downscaled.resize(3 * kOutH * kOutW);
@@ -160,20 +176,127 @@ void SaliencyPredictor::DownscaleBilinear(const uint8_t* src, size_t srcPitch) {
 	}
 }
 
+bool SaliencyPredictor::EnsureGpuDownscalePipeline(ID3D11Texture2D* srcTexture) {
+	if (!srcTexture) return false;
+	D3D11_TEXTURE2D_DESC sdesc{};
+	srcTexture->GetDesc(&sdesc);
+	if (!m_srcSRV) {
+		if (FAILED(m_d3d->GetDevice()->CreateShaderResourceView(srcTexture, nullptr, &m_srcSRV))) {
+			Error("SaliencyPredictor: CreateShaderResourceView(src) failed\n");
+			return false;
+		}
+	}
+	if (!m_dsTex) {
+		D3D11_TEXTURE2D_DESC t{};
+		t.Width = kOutW; t.Height = kOutH; t.MipLevels = 1; t.ArraySize = 1;
+		t.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		t.SampleDesc.Count = 1; t.SampleDesc.Quality = 0;
+		t.Usage = D3D11_USAGE_DEFAULT; t.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+		t.CPUAccessFlags = 0; t.MiscFlags = 0;
+		if (FAILED(m_d3d->GetDevice()->CreateTexture2D(&t, nullptr, &m_dsTex))) {
+			Error("SaliencyPredictor: CreateTexture2D(ds) failed\n");
+			return false;
+		}
+		if (FAILED(m_d3d->GetDevice()->CreateRenderTargetView(m_dsTex.Get(), nullptr, &m_dsRTV))) {
+			Error("SaliencyPredictor: CreateRenderTargetView(ds) failed\n");
+			return false;
+		}
+		m_dsViewport.TopLeftX = 0; m_dsViewport.TopLeftY = 0;
+		m_dsViewport.Width = (FLOAT)kOutW; m_dsViewport.Height = (FLOAT)kOutH;
+		m_dsViewport.MinDepth = 0.0f; m_dsViewport.MaxDepth = 1.0f;
+		// Sampler
+		D3D11_SAMPLER_DESC samp{}; samp.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+		samp.AddressU = samp.AddressV = samp.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+		if (FAILED(m_d3d->GetDevice()->CreateSamplerState(&samp, &m_linearSampler))) {
+			Error("SaliencyPredictor: CreateSamplerState failed\n");
+			return false;
+		}
+		// Shaders
+		static const char* vsSrc = R"(
+		struct VSOut { float4 pos:SV_Position; float2 uv:TEXCOORD; };
+		VSOut main(uint vid:SV_VertexID){ VSOut o; float2 p = float2((vid<<1)&2, vid&2); o.pos=float4(p*float2(2,-2)+float2(-1,1),0,1); o.uv=p; return o; }
+		)";
+		static const char* psSrc = R"(
+		Texture2D srcTex:register(t0); SamplerState samp:register(s0);
+		float4 main(float2 uv:TEXCOORD):SV_Target{ return srcTex.Sample(samp, uv); }
+		)";
+		ComPtr<ID3DBlob> vsb, psb;
+		if (!CompileShader(vsSrc, "main", "vs_5_0", &vsb)) return false;
+		if (!CompileShader(psSrc, "main", "ps_5_0", &psb)) return false;
+		if (FAILED(m_d3d->GetDevice()->CreateVertexShader(vsb->GetBufferPointer(), vsb->GetBufferSize(), nullptr, &m_vs))) return false;
+		if (FAILED(m_d3d->GetDevice()->CreatePixelShader(psb->GetBufferPointer(), psb->GetBufferSize(), nullptr, &m_ps))) return false;
+	}
+	return true;
+}
+
+bool SaliencyPredictor::EnsureCudaInterop() {
+	if (m_cudaRes) return true;
+	if (!m_dsTex) return false;
+	cudaError_t err = cudaGraphicsD3D11RegisterResource(&m_cudaRes, m_dsTex.Get(), cudaGraphicsRegisterFlagsNone);
+	if (err != cudaSuccess) {
+		Error("SaliencyPredictor: cudaGraphicsD3D11RegisterResource failed: %d\n", (int)err);
+		m_cudaRes = nullptr;
+		return false;
+	}
+	return true;
+}
+
+bool SaliencyPredictor::EnsureCudaBuf(size_t bytes) {
+	if (m_cudaBufU8 && m_cudaBufU8Size >= bytes) return true;
+	if (m_cudaBufU8) { cudaFree(m_cudaBufU8); m_cudaBufU8 = nullptr; m_cudaBufU8Size = 0; }
+	cudaError_t err = cudaMalloc(&m_cudaBufU8, bytes);
+	if (err != cudaSuccess) {
+		Error("SaliencyPredictor: cudaMalloc failed: %d\n", (int)err);
+		return false;
+	}
+	m_cudaBufU8Size = bytes;
+	return true;
+}
+
 void SaliencyPredictor::Process(ID3D11Texture2D* srcTexture) {
 	if (!m_initialized || !srcTexture) return;
-	if (!EnsureReadbackBuffer(srcTexture)) return;
 
 	auto t_begin = std::chrono::high_resolution_clock::now();
-	// Copy GPU -> CPU staging
-	m_d3d->GetContext()->CopyResource(m_readbackTex.Get(), srcTexture);
-	D3D11_MAPPED_SUBRESOURCE mapped{};
-	if (FAILED(m_d3d->GetContext()->Map(m_readbackTex.Get(), 0, D3D11_MAP_READ, 0, &mapped))) {
-		return;
+
+	bool gpu_path_ok = EnsureGpuDownscalePipeline(srcTexture) && EnsureCudaInterop();
+	torch::Tensor x_from_cuda;
+	if (gpu_path_ok) {
+		// Draw fullscreen triangle downscale
+		auto ctx = m_d3d->GetContext();
+		ID3D11RenderTargetView* rt = m_dsRTV.Get();
+		ctx->OMSetRenderTargets(1, &rt, nullptr);
+		ctx->RSSetViewports(1, &m_dsViewport);
+		ctx->VSSetShader(m_vs.Get(), nullptr, 0);
+		ctx->PSSetShader(m_ps.Get(), nullptr, 0);
+		ID3D11ShaderResourceView* srv = m_srcSRV.Get();
+		ctx->PSSetShaderResources(0, 1, &srv);
+		ID3D11SamplerState* samp = m_linearSampler.Get();
+		ctx->PSSetSamplers(0, 1, &samp);
+		ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		ctx->Draw(3, 0);
+		// Unbind SRV to avoid D3D warnings if src is also bound elsewhere
+		ID3D11ShaderResourceView* nulls[1] = { nullptr };
+		ctx->PSSetShaderResources(0, 1, nulls);
+
+		// CUDA map + copy to tensor
+		cudaError_t err = cudaGraphicsMapResources(1, &m_cudaRes, 0);
+		if (err == cudaSuccess) {
+			cudaArray_t arr{};
+			err = cudaGraphicsSubResourceGetMappedArray(&arr, m_cudaRes, 0, 0);
+			if (err == cudaSuccess) {
+				size_t pitch = kOutW * 4;
+				if (EnsureCudaBuf(kOutH * pitch)) {
+					cudaMemcpy2DFromArray(m_cudaBufU8, pitch, arr, 0, 0, pitch, kOutH, cudaMemcpyDeviceToDevice);
+					// Wrap into a CUDA byte tensor and convert to model input
+					auto options_u8 = torch::TensorOptions().device(torch::kCUDA).dtype(torch::kUInt8);
+					auto raw = torch::from_blob(m_cudaBufU8, {kOutH, kOutW, 4}, options_u8);
+					x_from_cuda = raw.permute({2,0,1}).narrow(0,0,3).to(torch::kHalf).div_(255.0).unsqueeze(0).contiguous();
+				}
+			}
+			cudaGraphicsUnmapResources(1, &m_cudaRes, 0);
+		}
 	}
-	const uint8_t* src = reinterpret_cast<const uint8_t*>(mapped.pData);
-	DownscaleBilinear(src, mapped.RowPitch);
-	m_d3d->GetContext()->Unmap(m_readbackTex.Get(), 0);
+
 	auto t_after_resize = std::chrono::high_resolution_clock::now();
 
 #ifdef ALVR_SALIENCY
@@ -192,11 +315,13 @@ void SaliencyPredictor::Process(ID3D11Texture2D* srcTexture) {
 				m_module.to(torch::kCUDA);
 				module_on_cuda = true;
 				Info("SaliencyPredictor: moved module to CUDA\n");
+				// Convert weights to FP16 for speed on RTX
+				try { m_module.to(torch::kHalf); Info("SaliencyPredictor: converted module to FP16\n"); } catch (const c10::Error&) {}
 				// Warm-up a few iters to initialize cuDNN kernels
 				try {
 					c10::InferenceMode no_grad(true);
 					std::vector<torch::jit::IValue> winputs;
-					winputs.emplace_back(torch::zeros({1,3,kOutH,kOutW}, torch::dtype(torch::kFloat32).device(torch::kCUDA)));
+					winputs.emplace_back(torch::zeros({1,3,kOutH,kOutW}, torch::dtype(torch::kHalf).device(torch::kCUDA)));
 					winputs.emplace_back(torch::jit::IValue());
 					for (int i = 0; i < 3; ++i) {
 						auto wout = m_module.forward(winputs).toTuple();
@@ -211,18 +336,34 @@ void SaliencyPredictor::Process(ID3D11Texture2D* srcTexture) {
 			}
 		}
 
-		// Build input tensor (1,3,192,256) float
-		auto options = torch::TensorOptions().dtype(torch::kFloat32);
-		torch::Tensor x = torch::from_blob(m_downscaled.data(), {1, 3, kOutH, kOutW}, options).clone();
-		if (module_on_cuda) {
-			x = x.to(torch::kCUDA);
+		// Build input tensor (1,3,192,256)
+		torch::Tensor x;
+		if (module_on_cuda && x_from_cuda.defined()) {
+			x = x_from_cuda;
+		} else {
+			// Fallback to CPU path
+			if (!EnsureReadbackBuffer(srcTexture)) return;
+			m_d3d->GetContext()->CopyResource(m_readbackTex.Get(), srcTexture);
+			D3D11_MAPPED_SUBRESOURCE mapped{};
+			if (FAILED(m_d3d->GetContext()->Map(m_readbackTex.Get(), 0, D3D11_MAP_READ, 0, &mapped))) {
+				return;
+			}
+			const uint8_t* src = reinterpret_cast<const uint8_t*>(mapped.pData);
+			DownscaleBilinear(src, mapped.RowPitch);
+			m_d3d->GetContext()->Unmap(m_readbackTex.Get(), 0);
+			auto options = torch::TensorOptions().dtype(torch::kFloat32);
+			x = torch::from_blob(m_downscaled.data(), {1, 3, kOutH, kOutW}, options).clone();
+			if (module_on_cuda) {
+				x = x.to(torch::kCUDA, torch::kHalf);
+			}
 		}
+
 		static torch::Tensor hidden; // persist across frames
 		std::vector<torch::jit::IValue> inputs;
 		inputs.emplace_back(x);
 		if (hidden.defined()) {
 			if (module_on_cuda && !hidden.is_cuda()) {
-				hidden = hidden.to(torch::kCUDA);
+				hidden = hidden.to(torch::kCUDA, /*dtype*/torch::kHalf);
 			}
 			inputs.emplace_back(hidden);
 		} else {
@@ -259,46 +400,9 @@ void SaliencyPredictor::Process(ID3D11Texture2D* srcTexture) {
 	double ms_total = std::chrono::duration<double, std::milli>(t_after_infer - t_begin).count();
 	Info("Saliency latency: resize+copy=%.3fms infer=%.3fms total=%.3fms\n", ms_resize, ms_infer, ms_total);
 
-	// Dump saliency to CSV on every frame
+	// Dump disabled for perf testing
 	m_frameCounter++;
 #ifdef ALVR_SALIENCY
-	// if (m_lastSaliency.defined()) {
-	// 	try {
-	// 		auto sal = m_lastSaliency.squeeze(); // (1,1,H,W) -> (H,W) or (1,H,W) -> (H,W)
-	// 		sal = sal.contiguous();
-	// 		const int H = (int)sal.size(-2);
-	// 		const int W = (int)sal.size(-1);
-	// 		std::ostringstream fname;
-	// 		fname << "saliency_" << std::setw(6) << std::setfill('0') << m_frameCounter << ".csv";
-	// 		auto out_path = (std::filesystem::current_path() / fname.str()).string();
-	// 		std::ofstream ofs(out_path, std::ios::out | std::ios::trunc);
-	// 		if (!ofs.is_open()) {
-	// 			Error("SaliencyPredictor: failed to open CSV for write: %s (errno=%d %s)\n", out_path.c_str(), errno, std::strerror(errno));
-	// 		} else {
-	// 			ofs.setf(std::ios::fixed); ofs<<std::setprecision(6);
-	// 			auto cpu = sal.cpu();
-	// 			if (cpu.dtype() == torch::kFloat32) {
-	// 				float* data = cpu.data_ptr<float>();
-	// 				for (int y = 0; y < H; ++y) {
-	// 					for (int x = 0; x < W; ++x) {
-	// 						ofs << data[y * W + x];
-	// 						if (x + 1 < W) ofs << ",";
-	// 					}
-	// 					ofs << "\n";
-	// 				}
-	// 				Info("SaliencyPredictor: wrote CSV %s (%dx%d)\n", out_path.c_str(), W, H);
-	// 			} else {
-	// 				Error("SaliencyPredictor: unexpected tensor dtype, csv not written\n");
-	// 			}
-	// 			ofs.close();
-	// 		}
-	// 	} catch (const std::exception& ex) {
-	// 		Error("SaliencyPredictor: failed to write saliency csv: %s\n", ex.what());
-	// 	} catch (...) {
-	// 		Error("SaliencyPredictor: failed to write saliency csv (unknown)\n");
-	// 	}
-	// } else {
-	// 	Error("SaliencyPredictor: saliency undefined, skipping CSV\n");
-	// }
+	// CSV dump removed
 #endif
 } 

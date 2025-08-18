@@ -43,6 +43,22 @@ private:
 	bool m_initialized = false;
 	uint64_t m_frameCounter = 0;
 
+	// GPU downscale + CUDA interop
+	ComPtr<ID3D11ShaderResourceView> m_srcSRV;
+	ComPtr<ID3D11Texture2D> m_dsTex;
+	ComPtr<ID3D11RenderTargetView> m_dsRTV;
+	ComPtr<ID3D11VertexShader> m_vs;
+	ComPtr<ID3D11PixelShader> m_ps;
+	ComPtr<ID3D11SamplerState> m_linearSampler;
+	D3D11_VIEWPORT m_dsViewport{};
+	void* m_cudaBufU8 = nullptr;
+	size_t m_cudaBufU8Size = 0;
+	void* m_cudaBufRGB = nullptr; // reserved
+	struct cudaGraphicsResource* m_cudaRes = nullptr;
+
 	bool EnsureReadbackBuffer(ID3D11Texture2D* srcTexture);
 	void DownscaleBilinear(const uint8_t* src, size_t srcPitch);
+	bool EnsureGpuDownscalePipeline(ID3D11Texture2D* srcTexture);
+	bool EnsureCudaInterop();
+	bool EnsureCudaBuf(size_t bytes);
 }; 

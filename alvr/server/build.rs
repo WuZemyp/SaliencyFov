@@ -93,7 +93,7 @@ fn main() {
     #[cfg(feature = "gpl")]
     build.define("ALVR_GPL", None);
 
-    // Optional: LibTorch include (for future CPU inference in C++)
+    // Optional: LibTorch include (for future CPU/GPU inference in C++)
     if saliency_enabled {
         build.define("ALVR_SALIENCY", None);
         if let Ok(libtorch) = env::var("LIBTORCH") {
@@ -101,6 +101,13 @@ fn main() {
             let include_torch = PathBuf::from(&libtorch).join("include/torch/csrc/api/include");
             build.include(include);
             build.include(include_torch);
+        }
+        // Optional: CUDA headers if available
+        if let Ok(cuda_path) = env::var("CUDA_PATH") {
+            let cuda_include = PathBuf::from(&cuda_path).join("include");
+            if cuda_include.exists() {
+                build.include(cuda_include);
+            }
         }
     }
 
@@ -147,7 +154,6 @@ fn main() {
         if let Ok(libtorch) = env::var("LIBTORCH") {
             let libdir = PathBuf::from(&libtorch).join("lib");
             println!("cargo:rustc-link-search=native={}", libdir.to_string_lossy());
-            // CPU + CUDA libs
             for lib in [
                 "c10",
                 "torch_cpu",
@@ -156,7 +162,18 @@ fn main() {
             ] {
                 println!("cargo:rustc-link-lib={}", lib);
             }
-            // On Windows, LibTorch uses MSVC runtime; no extra stdc++ linking
+        }
+        // CUDA runtime (optional)
+        if let Ok(cuda_path) = env::var("CUDA_PATH") {
+            let cudalib = PathBuf::from(&cuda_path).join("lib/x64");
+            if cudalib.exists() {
+                println!("cargo:rustc-link-search=native={}", cudalib.to_string_lossy());
+                println!("cargo:rustc-link-lib=cudart");
+            }
+        }
+        // Shader compiler on Windows
+        if cfg!(target_os = "windows") {
+            println!("cargo:rustc-link-lib=d3dcompiler");
         }
     }
 
