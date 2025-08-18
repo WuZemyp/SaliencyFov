@@ -377,7 +377,7 @@ void SaliencyPredictor::Process(ID3D11Texture2D* srcTexture) {
 
 		// Build input tensor (1,3,192,256)
 		torch::Tensor x;
-		if (module_on_cuda && x_from_cuda.defined()) {
+		if (module_on_cuda && x_from_cuda.defined()) {//
 			x = x_from_cuda;
 		} else {
 			// Fallback to CPU path
