@@ -90,29 +90,6 @@
 		{
 			m_presentationTime = presentationTime;
 			m_targetTimestampNs = targetTimestampNs;
-			// dynamic foveated rendering 
-			int frame_width = Settings::Instance().m_renderWidth/2;
-			int frame_height = Settings::Instance().m_renderHeight;
-			m_gaze_location_leftx = int(GetEyeGazeLocationLeftX());
-			m_gaze_location_lefty = int(frame_height-GetEyeGazeLocationLeftY());
-			m_gaze_location_rightx = int(GetEyeGazeLocationRightX());
-			m_gaze_location_righty = int(frame_height-GetEyeGazeLocationRightY());
-			
-			if (times%fr_freq == 0){
-				last_centerShiftX = (static_cast<float>(m_gaze_location_leftx) / (static_cast<float>(frame_width)) - 0.5)*2.0;
-				last_centerShiftY = (static_cast<float>(m_gaze_location_lefty) / (static_cast<float>(frame_height)) - 0.5)*2.0;
-			}
-			times++;
-			if (last_centerShiftX == 0.0){
-				last_centerShiftX = 0.4;
-			}
-			if (last_centerShiftY == 0.0){
-				last_centerShiftY = 0.1;
-			}
-			
-			m_FrameRender->Startup(last_centerShiftX, last_centerShiftY);
-			m_FrameRender->Reinit_ffr(last_centerShiftX, last_centerShiftY);// re-init foveated rendering shader
-			// dynamic foveated rendering 
 			m_FrameRender->RenderFrame(pTexture, bounds, layerCount, recentering, message, debugText);
 			// Run saliency downscale/readback for next-step inference
 			if (m_saliency) {

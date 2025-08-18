@@ -15,8 +15,10 @@
 #include <c10/core/InferenceMode.h>
 #endif
 #include <Windows.h>
+#ifdef ALVR_SALIENCY
 #include <cuda_runtime_api.h>
 #include <cuda_d3d11_interop.h>
+#endif
 
 SaliencyPredictor::SaliencyPredictor(std::shared_ptr<CD3DRender> d3dRender)
 	: m_d3d(std::move(d3dRender)) {}
@@ -217,18 +219,26 @@ bool SaliencyPredictor::EnsureGpuDownscalePipeline(ID3D11Texture2D* srcTexture) 
 		VSOut main(uint vid:SV_VertexID){ VSOut o; float2 p = float2((vid<<1)&2, vid&2); o.pos=float4(p*float2(2,-2)+float2(-1,1),0,1); o.uv=p; return o; }
 		)";
 		static const char* psSrc = R"(
+		cbuffer CB : register(b0) { float4 uvRect; } // (u0,v0,u1,v1)
 		Texture2D srcTex:register(t0); SamplerState samp:register(s0);
-		float4 main(float2 uv:TEXCOORD):SV_Target{ return srcTex.Sample(samp, uv); }
+		float4 main(float2 uv:TEXCOORD):SV_Target{
+			float2 tuv = float2(lerp(uvRect.x, uvRect.z, uv.x), lerp(uvRect.y, uvRect.w, uv.y));
+			return srcTex.Sample(samp, tuv);
+		}
 		)";
 		ComPtr<ID3DBlob> vsb, psb;
 		if (!CompileShader(vsSrc, "main", "vs_5_0", &vsb)) return false;
 		if (!CompileShader(psSrc, "main", "ps_5_0", &psb)) return false;
 		if (FAILED(m_d3d->GetDevice()->CreateVertexShader(vsb->GetBufferPointer(), vsb->GetBufferSize(), nullptr, &m_vs))) return false;
 		if (FAILED(m_d3d->GetDevice()->CreatePixelShader(psb->GetBufferPointer(), psb->GetBufferSize(), nullptr, &m_ps))) return false;
+		// Create constant buffer
+		D3D11_BUFFER_DESC cbd{}; cbd.ByteWidth = 16; cbd.BindFlags = D3D11_BIND_CONSTANT_BUFFER; cbd.Usage = D3D11_USAGE_DYNAMIC; cbd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		if (FAILED(m_d3d->GetDevice()->CreateBuffer(&cbd, nullptr, &m_uvCB))) return false;
 	}
 	return true;
 }
 
+#ifdef ALVR_SALIENCY
 bool SaliencyPredictor::EnsureCudaInterop() {
 	if (m_cudaRes) return true;
 	if (!m_dsTex) return false;
@@ -252,15 +262,42 @@ bool SaliencyPredictor::EnsureCudaBuf(size_t bytes) {
 	m_cudaBufU8Size = bytes;
 	return true;
 }
+#endif
+
+#ifdef ALVR_SALIENCY
+static torch::Tensor make_gaussian_kernel_2d(int k, float sigma, torch::Device device, c10::ScalarType dtype) {
+	// Build separable 1D gaussian and form 2D via outer product
+	auto opts = torch::TensorOptions().dtype(torch::kFloat32).device(device);
+	auto ax = torch::arange(k, opts) - (k - 1) * 0.5f;
+	auto g1 = torch::exp(-(ax * ax) / (2.0f * sigma * sigma));
+	auto g2d = (g1.unsqueeze(1) * g1.unsqueeze(0));
+	g2d = g2d / g2d.sum();
+	g2d = g2d.to(dtype);
+	return g2d.unsqueeze(0).unsqueeze(0); // [1,1,k,k]
+}
+#endif
 
 void SaliencyPredictor::Process(ID3D11Texture2D* srcTexture) {
 	if (!m_initialized || !srcTexture) return;
 
 	auto t_begin = std::chrono::high_resolution_clock::now();
 
-	bool gpu_path_ok = EnsureGpuDownscalePipeline(srcTexture) && EnsureCudaInterop();
+	bool gpu_path_ok = EnsureGpuDownscalePipeline(srcTexture)
+#ifdef ALVR_SALIENCY
+		&& EnsureCudaInterop()
+#endif
+		;
+#ifdef ALVR_SALIENCY
 	torch::Tensor x_from_cuda;
+#endif
+#ifdef ALVR_SALIENCY
 	if (gpu_path_ok) {
+		// Update uv rect to left half [0,0]-[0.5,1]
+		D3D11_MAPPED_SUBRESOURCE m{};
+		if (SUCCEEDED(m_d3d->GetContext()->Map(m_uvCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &m))) {
+			float* p = (float*)m.pData; p[0]=0.0f; p[1]=0.0f; p[2]=0.5f; p[3]=1.0f;
+			m_d3d->GetContext()->Unmap(m_uvCB.Get(), 0);
+		}
 		// Draw fullscreen triangle downscale
 		auto ctx = m_d3d->GetContext();
 		ID3D11RenderTargetView* rt = m_dsRTV.Get();
@@ -268,6 +305,7 @@ void SaliencyPredictor::Process(ID3D11Texture2D* srcTexture) {
 		ctx->RSSetViewports(1, &m_dsViewport);
 		ctx->VSSetShader(m_vs.Get(), nullptr, 0);
 		ctx->PSSetShader(m_ps.Get(), nullptr, 0);
+		ctx->PSSetConstantBuffers(0, 1, m_uvCB.GetAddressOf());
 		ID3D11ShaderResourceView* srv = m_srcSRV.Get();
 		ctx->PSSetShaderResources(0, 1, &srv);
 		ID3D11SamplerState* samp = m_linearSampler.Get();
@@ -296,6 +334,7 @@ void SaliencyPredictor::Process(ID3D11Texture2D* srcTexture) {
 			cudaGraphicsUnmapResources(1, &m_cudaRes, 0);
 		}
 	}
+#endif
 
 	auto t_after_resize = std::chrono::high_resolution_clock::now();
 
@@ -379,7 +418,28 @@ void SaliencyPredictor::Process(ID3D11Texture2D* srcTexture) {
 			if (module_on_cuda) { torch::cuda::synchronize(); }
 			torch::Tensor sal = out->elements()[0].toTensor();
 			hidden = out->elements()[1].toTensor();
-			m_lastSaliency = sal.detach();
+			// Post-process: normalize to [0,1] per-frame and apply small Gaussian blur
+			{
+				auto s = sal.detach(); // [1,1,H,W]
+				bool on_cuda = s.is_cuda();
+				c10::ScalarType work_dtype = on_cuda ? s.scalar_type() : torch::kFloat32; // CPU half conv may be unsupported
+				// Normalize
+				auto s_min = s.amin(std::vector<int64_t>{2,3}, /*keepdim=*/true);
+				auto s_max = s.amax(std::vector<int64_t>{2,3}, /*keepdim=*/true);
+				auto denom = (s_max - s_min) + 1e-8f;
+				auto s_norm = (s - s_min) / denom;
+				// Gaussian blur (k=7, sigma=1.5)
+				int ksz = 7; float sigma = 1.5f;
+				auto kernel = make_gaussian_kernel_2d(ksz, sigma, s.device(), work_dtype);
+				// If CPU and original dtype is half, upcast for conv2d
+				auto s_conv = s_norm;
+				if (!on_cuda && s_conv.scalar_type() != work_dtype) s_conv = s_conv.to(work_dtype);
+				int pad = ksz / 2;
+				auto s_blur = torch::conv2d(s_conv, kernel, {}, {1,1}, {pad, pad});
+				// Cast back to original dtype if needed
+				if (s_blur.scalar_type() != s.scalar_type()) s_blur = s_blur.to(s.scalar_type());
+				m_lastSaliency = s_blur;
+			}
 			Info("SaliencyPredictor: output device: %s\n", m_lastSaliency.is_cuda() ? "cuda" : "cpu");
 			Info("SaliencyPredictor: inference ok. saliency sizes=%lld dims, last=(%lld,%lld)\n", (long long)m_lastSaliency.dim(), (long long)m_lastSaliency.size(-2), (long long)m_lastSaliency.size(-1));
 			// quick stats
@@ -393,6 +453,8 @@ void SaliencyPredictor::Process(ID3D11Texture2D* srcTexture) {
 	} else {
 		Error("SaliencyPredictor: model not loaded\n");
 	}
+#else
+	// No-op if saliency disabled
 #endif
 	auto t_after_infer = std::chrono::high_resolution_clock::now();
 	double ms_resize = std::chrono::duration<double, std::milli>(t_after_resize - t_begin).count();
@@ -400,7 +462,6 @@ void SaliencyPredictor::Process(ID3D11Texture2D* srcTexture) {
 	double ms_total = std::chrono::duration<double, std::milli>(t_after_infer - t_begin).count();
 	Info("Saliency latency: resize+copy=%.3fms infer=%.3fms total=%.3fms\n", ms_resize, ms_infer, ms_total);
 
-	// Dump disabled for perf testing
 	m_frameCounter++;
 #ifdef ALVR_SALIENCY
 	// CSV dump removed

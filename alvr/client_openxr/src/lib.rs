@@ -1041,11 +1041,11 @@ pub fn entry_point() {
                 let mut centerShiftX = 0.4 as f32;
                 let mut centerShiftY = 0.1 as f32;
 
-                if let Some(stats_try) = &mut *alvr_client_core::STATISTICS_MANAGER.lock() {
-                    let (x,y) = stats_try.get_frame_fr_shift(timestamp);
-                    centerShiftX = x;
-                    centerShiftY = y;
-                }
+                // if let Some(stats_try) = &mut *alvr_client_core::STATISTICS_MANAGER.lock() {
+                //     let (x,y) = stats_try.get_frame_fr_shift(timestamp);
+                //     centerShiftX = x;
+                //     centerShiftY = y;
+                // }
                 alvr_client_core::opengl::render_stream(
                     hardware_buffer,
                     [left_swapchain_idx, right_swapchain_idx],

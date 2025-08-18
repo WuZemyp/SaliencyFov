@@ -768,48 +768,11 @@ void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint
         m_qpDeltaMapSize = m_numBlocks * sizeof(NV_ENC_EMPHASIS_MAP_LEVEL);
         qp_map = new int8_t[m_qpDeltaMapSize];
     }
-    //update the params required during the transfering from gaze point in original frame to gaze point in foveated rendered frame
-    int frame_width = Settings::Instance().m_renderWidth/2;
-	int frame_height = Settings::Instance().m_renderHeight;
-    float centerShiftX = static_cast<float>(leftX) / (static_cast<float>(frame_width));// left eye location x
-	float centerShiftY = static_cast<float>(leftY) / (static_cast<float>(frame_height));// left eye location y
-
-    float targetEyeWidth = (float)Settings::Instance().m_renderWidth / 2;//frame width for one frame(not composed)
-	float targetEyeHeight = (float)Settings::Instance().m_renderHeight;// frame height
-
-	float centerSizeX = (float)Settings::Instance().m_foveationCenterSizeX;//0.45
-	float centerSizeY = (float)Settings::Instance().m_foveationCenterSizeY;//0.4
-    float edgeRatioX = (float)Settings::Instance().m_foveationEdgeRatioX;//4.0
-	float edgeRatioY = (float)Settings::Instance().m_foveationEdgeRatioY;//5.0
-
-
-
-    float edgeSizeX = targetEyeWidth-centerSizeX*targetEyeWidth;
-	float edgeSizeY = targetEyeHeight-centerSizeY*targetEyeHeight;
-
-	float centerSizeXAligned = 1.-ceil(edgeSizeX/(edgeRatioX*2.))*(edgeRatioX*2.)/targetEyeWidth;
-	float centerSizeYAligned = 1.-ceil(edgeSizeY/(edgeRatioY*2.))*(edgeRatioY*2.)/targetEyeHeight;
-
-	float edgeSizeXAligned = targetEyeWidth-centerSizeXAligned*targetEyeWidth;
-	float edgeSizeYAligned = targetEyeHeight-centerSizeYAligned*targetEyeHeight;
-
-	float centerShiftXAligned = ceil(centerShiftX*edgeSizeXAligned/(edgeRatioX*2.))*(edgeRatioX*2.)/edgeSizeXAligned;
-	float centerShiftYAligned = ceil(centerShiftY*edgeSizeYAligned/(edgeRatioY*2.))*(edgeRatioY*2.)/edgeSizeYAligned;
-
-    float foveationScaleX = (centerSizeXAligned+(1.-centerSizeXAligned)/edgeRatioX);
-	float foveationScaleY = (centerSizeYAligned+(1.-centerSizeYAligned)/edgeRatioY);
-
-	this->optimizedEyeWidth = foveationScaleX*targetEyeWidth;
-	this->optimizedEyeHeight = foveationScaleY*targetEyeHeight;
-
-
-    Update_decompress_params(centerShiftXAligned,centerShiftYAligned);
-    //finish updating the params required during the transfering from gaze point in original frame to gaze point in foveated rendered frame
     
-    int r_leftX = (decompress_x(leftX)+15)/16;//eye gaze point project from original game frame coordinate system to foveated rendered frame corrdinate system
-    int r_leftY = (decompress_y(leftY)+15)/16;
-    int r_rightX = (decompress_x(rightX)+15)/16;
-    int r_rightY = (decompress_y(rightY)+15)/16;
+    int r_leftX = 67;
+    int r_leftY = 73;
+    int r_rightX = 200;
+    int r_rightY = 73;
     changed = changed || (r_leftX!=m_leftX) || (r_leftY!=m_leftY) || (r_rightX!=m_rightX) || (r_rightY!=m_rightY);
     m_leftX = r_leftX; 
     m_leftY = r_leftY;

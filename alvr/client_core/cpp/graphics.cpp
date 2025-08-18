@@ -883,9 +883,9 @@ void renderStreamNative(void *streamHardwareBuffer, const unsigned int swapchain
 
         renderer->srgbCorrectionPass->Render();
         if (renderer->enableFFE) {
-            if (renderer->ffr->last_centerShiftX != centerShiftX || renderer->ffr->last_centerShiftY != centerShiftY){
-                renderer->ffr->Reinit(centerShiftX,centerShiftY);
-            }
+            // if (renderer->ffr->last_centerShiftX != centerShiftX || renderer->ffr->last_centerShiftY != centerShiftY){
+            //     renderer->ffr->Reinit(centerShiftX,centerShiftY);
+            // }
             
             renderer->ffr->Render();
         }
