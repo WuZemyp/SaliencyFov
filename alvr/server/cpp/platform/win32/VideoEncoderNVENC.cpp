@@ -303,7 +303,7 @@ void VideoEncoderNVENC::FillEncodeConfig(NV_ENC_INITIALIZE_PARAMS &initializePar
 	encodeConfig.rcParams.enableAQ = 0;
 	encodeConfig.rcParams.enableTemporalAQ = 0;
 	encodeConfig.rcParams.rateControlMode = NV_ENC_PARAMS_RC_CONSTQP;
-	encodeConfig.rcParams.constQP = {11,11,11};//x264 crf mode default value
+	encodeConfig.rcParams.constQP = {18,18,18};//x264 crf mode default value
 }
 
 void VideoEncoderNVENC::SetSaliencyMap(const std::vector<float>& sal, int w, int h, uint64_t ts)

@@ -53,6 +53,8 @@ private:
 	ComPtr<ID3D11PixelShader> m_ps;
 	ComPtr<ID3D11SamplerState> m_linearSampler;
 	ComPtr<ID3D11Buffer> m_uvCB; // float4 uvRect = (u0,v0,u1,v1)
+	ComPtr<ID3D11RasterizerState> m_rsNoCull;
+	ComPtr<ID3D11BlendState> m_bsOpaque;
 	D3D11_VIEWPORT m_dsViewport{};
 	void* m_cudaBufU8 = nullptr;
 	size_t m_cudaBufU8Size = 0;
@@ -60,7 +62,7 @@ private:
 	struct cudaGraphicsResource* m_cudaRes = nullptr;
 
 	bool EnsureReadbackBuffer(ID3D11Texture2D* srcTexture);
-	void DownscaleBilinear(const uint8_t* src, size_t srcPitch);
+	void DownscaleBilinear(const uint8_t* src, size_t srcPitch, int roiX, int roiY, int roiW, int roiH);
 	bool EnsureGpuDownscalePipeline(ID3D11Texture2D* srcTexture);
 	bool EnsureCudaInterop();
 	bool EnsureCudaBuf(size_t bytes);
