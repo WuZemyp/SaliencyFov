@@ -16,3 +16,9 @@ std::string filename_s = "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Ste
 std::string get_path_head(){
     return filename_s;
 }
+
+// Run saliency inference every N frames (>=1). Can be changed at runtime.
+int g_infer_every_n_frames = 2;
+
+// Enable CSV dumps by default? Keep off for performance.
+bool g_enable_qpmap_csv_dumps = false;

@@ -251,7 +251,7 @@ void OvrDirectModeComponent::Present(vr::SharedTextureHandle_t syncTexture)
 		}
 	}
 
-	ReportComposed(m_targetTimestampNs, 0);
+	//ReportComposed(m_targetTimestampNs, 0);
 
 	if (m_pEncoder) {
 		m_pEncoder->NewFrameReady();

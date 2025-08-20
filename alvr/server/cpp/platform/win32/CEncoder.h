@@ -76,5 +76,6 @@
 		float last_centerShiftY;
 		long long times;// frame counts
 		long long fr_freq;// dynamic foveated rendering frequency. Default is 5, a lower value cost higher computational resource
+		uint64_t m_inferFrameCounter = 0; // counts frames for saliency inference frequency
 	};
 

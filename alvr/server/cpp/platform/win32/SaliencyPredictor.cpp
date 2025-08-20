@@ -1,6 +1,7 @@
 #include "SaliencyPredictor.h"
 #include "alvr_server/Utils.h"
 #include "alvr_server/Logger.h"
+#include "../../analyze_use/config.h"
 #include <vector>
 #include <string>
 #include <chrono>
@@ -787,7 +788,7 @@ void SaliencyPredictor::Process(ID3D11Texture2D* srcTexture) {
 				if (s_blur.scalar_type() != s.scalar_type()) s_blur = s_blur.to(s.scalar_type());
 				m_lastSaliency = s_blur;
 				// Dump every 100 frames right after post-process
-				bool shouldDump = ((m_frameCounter + 1) % 100) == 0;
+				bool shouldDump = get_enable_csv_dumps() && ((m_frameCounter + 1) % 100) == 0;
 				if (shouldDump) {
 					auto cpu2d = m_lastSaliency.squeeze().to(torch::kFloat32).to(torch::kCPU).contiguous();
 					int h = (int)cpu2d.size(0);

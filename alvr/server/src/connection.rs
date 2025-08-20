@@ -139,6 +139,7 @@ fn create_csv_file_for_MTP_statistics(filename: &str) -> Result<(), Box<dyn Erro
             "target_ts_nanos",
             "game_latency_ms",
             "composite_latency_ms",
+            "inferenced_latency_ms",
             "encode_latency_ms",
             "decode_latency_ms",
             "network_latency_ms",

@@ -18,6 +18,8 @@ pub struct HistoryFrame {
     frame_present_MTP: Instant,
     frame_composed: Instant,
     frame_composed_MTP: Instant,
+    frame_inferenced: Instant,
+    frame_inferenced_MTP: Instant,
     frame_encoded: Instant,
     frame_encoded_MTP: Instant,
     video_packet_bytes: usize,
@@ -31,6 +33,7 @@ pub struct HistoryFrame {
     send_times: i32,
     encode_times: i32,
     composition_times: i32,
+    inferenced_times: i32,
     tracking_rece_times: i32,
     frame_present_times: i32,
     send_delta_vec : Vec<(i32, i64)>,
@@ -51,6 +54,8 @@ impl Default for HistoryFrame {
             frame_present_MTP: now,
             frame_composed: now,
             frame_composed_MTP: now,
+            frame_inferenced: now,
+            frame_inferenced_MTP: now,
             frame_encoded: now,
             frame_encoded_MTP: now,
             video_packet_bytes: 0,//total size for this encoded frame
@@ -64,6 +69,7 @@ impl Default for HistoryFrame {
             send_times : 0,
             encode_times: 0,
             composition_times: 0,
+            inferenced_times: 0,
             tracking_rece_times: 0,
             frame_present_times: 0,
             send_delta_vec:Vec::new(),
@@ -148,7 +154,7 @@ fn write_latency_to_csv(filename: &str, latency_values: [String; 41]) -> Result<
 
     Ok(())
 }
-fn write_MTP_latency_to_csv(filename: &str, latency_values: [String; 17]) -> Result<(), Box<dyn Error>> {
+fn write_MTP_latency_to_csv(filename: &str, latency_values: [String; 18]) -> Result<(), Box<dyn Error>> {
 
     let mut file = OpenOptions::new().write(true).append(true).open(filename)?;
     let mut writer = Writer::from_writer(file);
@@ -173,7 +179,7 @@ fn write_MTP_latency_to_csv(filename: &str, latency_values: [String; 17]) -> Res
         &latency_values[14],
         &latency_values[15],
         &latency_values[16],
-        // &latency_values[17],
+        &latency_values[17],
         // &latency_values[18],
         // &latency_values[19],
         // &latency_values[20],
@@ -340,6 +346,21 @@ impl StatisticsManager {
         }
     }
 
+    pub fn report_frame_inferenced(&mut self, target_timestamp: Duration, offset: Duration) {
+        if let Some(frame) = self
+            .history_buffer
+            .iter_mut()
+            .find(|frame| frame.target_timestamp == target_timestamp)
+        {
+            if frame.inferenced_times == 0{
+                frame.frame_inferenced_MTP = Instant::now() - offset;
+                
+            }
+            frame.frame_inferenced = Instant::now() - offset;
+            frame.inferenced_times +=1;
+        }
+    }
+
     // returns encoding interval
     pub fn report_frame_encoded(
         &mut self,
@@ -361,7 +382,7 @@ impl StatisticsManager {
                 frame.frame_encoded_MTP = Instant::now();
                 frame.video_packet_bytes_MTP = bytes_count;
                 frame.frame_c_MTP = c;
-                let _ = frame.frame_encoded_MTP.saturating_duration_since(frame.frame_composed_MTP);
+                let _ = frame.frame_encoded_MTP.saturating_duration_since(frame.frame_inferenced_MTP);
             }
             frame.frame_encoded = Instant::now();
             //let times = frame.encode_times;
@@ -370,7 +391,7 @@ impl StatisticsManager {
             frame.encode_times +=1;
             frame.frame_c = c;
 
-            frame.frame_encoded.saturating_duration_since(frame.frame_composed)
+            frame.frame_encoded.saturating_duration_since(frame.frame_inferenced)
         } else {
             Duration::ZERO
         }
@@ -435,14 +456,18 @@ impl StatisticsManager {
                 let server_compositor_latency = frame
                     .frame_composed_MTP
                     .saturating_duration_since(frame.frame_present_MTP);
+                let inferenced_latency = frame
+                    .frame_inferenced_MTP
+                    .saturating_duration_since(frame.frame_composed_MTP);
     
                 let encoder_latency = frame
                     .frame_encoded_MTP
-                    .saturating_duration_since(frame.frame_composed_MTP);
+                    .saturating_duration_since(frame.frame_inferenced_MTP);
                 let network_latency = frame.total_pipeline_latency_MTP.saturating_sub(
                     game_time_latency
                         + server_compositor_latency
                         + encoder_latency
+                        + inferenced_latency
                         + client_stats.video_decode
                         + client_stats.video_decoder_queue
                         + client_stats.rendering
@@ -462,17 +487,34 @@ impl StatisticsManager {
                 let mut timestamp_for_this_frame=(frame.target_timestamp.as_nanos()).to_string();// unique key for a frame
                 let mut interval_trackingReceived_framePresentInVirtualDevice=(game_time_latency.as_secs_f32()*1000.).to_string();//game latency
                 let mut interval_framePresentInVirtualDevice_frameComposited=(server_compositor_latency.as_secs_f32()*1000.).to_string();//composite latency
+
                 let mut interval_frameComposited_VideoEncoded=(encoder_latency.as_secs_f32() * 1000.).to_string();//encode latency
                 let mut interval_VideoReceivedByClient_VideoDecoded=(client_stats.video_decode.as_secs_f32() * 1000.).to_string();//decode latency
                 let mut interval_network=((network_latency.as_secs_f32()*1000.).to_string());//network latency
                 let mut client_dequeue_latency=(client_stats.video_decoder_queue.as_secs_f32()*1000.).to_string();//decoder queue latency
                 let mut client_rendering_latency=(client_stats.rendering.as_secs_f32()*1000.).to_string();// client reverse foveated rendering latency
                 let mut client_vsync_queue_latency=(client_stats.vsync_queue.as_secs_f32()*1000.).to_string();// client v-sync latency
-                let mut interval_total_pipeline=(frame.total_pipeline_latency_MTP.as_secs_f32() * 1000.).to_string();//total pipeline latency (MTP)
+
+                // Excluding IO latency
+                let three = Duration::from_millis(3);
+                let try_infer = inferenced_latency.checked_sub(Duration::from_millis(3));
+                let adj_infer = try_infer.unwrap_or(inferenced_latency);
+
+                // if inferenced subtraction succeeded, also subtract 3ms from total
+                let adj_total = if try_infer.is_some() {
+                    frame.total_pipeline_latency_MTP.saturating_sub(three)
+                } else {
+                    frame.total_pipeline_latency_MTP
+                };
+
+                let interval_frameComposited_frameInferenced =
+                    (adj_infer.as_secs_f32() * 1000.0).to_string();
+                let interval_total_pipeline =
+                    (adj_total.as_secs_f32() * 1000.0).to_string();
                 let encoded_frame_size = frame.video_packet_bytes_MTP.to_string();
                 let experiment_target_timestamp=Local::now().format("%Y%m%d_%H%M%S").to_string();
                 let controller_string = frame.frame_c_MTP.to_string();
-                let latency_strings=[timestamp_for_this_frame,interval_trackingReceived_framePresentInVirtualDevice,interval_framePresentInVirtualDevice_frameComposited,interval_frameComposited_VideoEncoded,interval_VideoReceivedByClient_VideoDecoded,interval_network,
+                let latency_strings=[timestamp_for_this_frame,interval_trackingReceived_framePresentInVirtualDevice,interval_framePresentInVirtualDevice_frameComposited,interval_frameComposited_frameInferenced,interval_frameComposited_VideoEncoded,interval_VideoReceivedByClient_VideoDecoded,interval_network,
             client_dequeue_latency,client_rendering_latency,client_vsync_queue_latency,interval_total_pipeline,encoded_frame_size,server_fps.to_string(),client_fps.to_string(),bitrate_mbps,recv_bitrate_mbps,controller_string,experiment_target_timestamp];
                 write_MTP_latency_to_csv(STATISTICS_FILE_PATH, latency_strings);
                 frame.MTP_reported = true;
@@ -495,10 +537,13 @@ impl StatisticsManager {
             let server_compositor_latency = frame
                 .frame_composed
                 .saturating_duration_since(frame.frame_present);
+            let inferenced_latency = frame
+                .frame_inferenced
+                .saturating_duration_since(frame.frame_composed);
 
             let encoder_latency = frame
                 .frame_encoded
-                .saturating_duration_since(frame.frame_composed);
+                .saturating_duration_since(frame.frame_inferenced);
 
             // The network latency cannot be estiamed directly. It is what's left of the total
             // latency after subtracting all other latency intervals. In particular it contains the
@@ -509,7 +554,8 @@ impl StatisticsManager {
             let network_latency = frame.total_pipeline_latency.saturating_sub(
                 game_time_latency
                     + server_compositor_latency
-                    + encoder_latency
+                    + encoder_latency   
+                    + inferenced_latency
                     + client_stats.video_decode
                     + client_stats.video_decoder_queue
                     + client_stats.rendering

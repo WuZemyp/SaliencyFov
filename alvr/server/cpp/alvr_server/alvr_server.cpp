@@ -193,6 +193,7 @@ void (*ShutdownRuntime)();
 unsigned long long (*PathStringToHash)(const char *path);
 void (*ReportPresent)(unsigned long long timestamp_ns, unsigned long long offset_ns, int layers);
 void (*ReportComposed)(unsigned long long timestamp_ns, unsigned long long offset_ns);
+void (*ReportInferenced)(unsigned long long timestamp_ns, unsigned long long offset_ns);
 FfiDynamicEncoderParams (*GetDynamicEncoderParams)();
 double (*GetEyeGazeLocationLeftX)();
 double (*GetEyeGazeLocationLeftY)();

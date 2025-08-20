@@ -802,7 +802,7 @@ void NvEncoder::GenQPDeltaMap(int leftX, int leftY, int rightX, int rightY, uint
 			}
 		}
 		// Dump every 100 frames
-		if (frameCounter % 100 == 0) {
+		if (get_enable_csv_dumps() && (frameCounter % 100 == 0)) {
 			std::ofstream ofs(get_path_head()+"qpmap_"+std::to_string(targetTimestampNs)+".csv");
 			for (int i = 0; i < map_height; ++i) {
 				for (int j = 0; j < map_width*2; ++j) {

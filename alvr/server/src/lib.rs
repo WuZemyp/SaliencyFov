@@ -400,6 +400,14 @@ pub unsafe extern "C" fn HmdDriverFactory(
             );
         }
     }
+    extern "C" fn report_inferenced(timestamp_ns: u64, offset_ns: u64) {
+        if let Some(stats) = &mut *STATISTICS_MANAGER.lock() {
+            stats.report_frame_inferenced(
+                Duration::from_nanos(timestamp_ns),
+                Duration::from_nanos(offset_ns),
+            );
+        }
+    }
 
     extern "C" fn get_dynamic_encoder_params() -> FfiDynamicEncoderParams {
         let (params, stats) = {
@@ -494,6 +502,7 @@ pub unsafe extern "C" fn HmdDriverFactory(
     PathStringToHash = Some(path_string_to_hash);
     ReportPresent = Some(report_present);
     ReportComposed = Some(report_composed);
+    ReportInferenced = Some(report_inferenced);
     GetSerialNumber = Some(openvr_props::get_serial_number);
     SetOpenvrProps = Some(openvr_props::set_device_openvr_props);
     RegisterButtons = Some(input_mapping::register_buttons);

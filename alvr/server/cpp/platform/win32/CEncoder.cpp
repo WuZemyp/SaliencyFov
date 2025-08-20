@@ -1,6 +1,7 @@
 #include "CEncoder.h"
 #include "alvr_server/Settings.h"
 #include "VideoEncoderNVENC.h"
+#include "../../analyze_use/config.h"
 
 		CEncoder::CEncoder()
 			: m_bExiting(false)
@@ -92,9 +93,15 @@
 			m_presentationTime = presentationTime;
 			m_targetTimestampNs = targetTimestampNs;
 			m_FrameRender->RenderFrame(pTexture, bounds, layerCount, recentering, message, debugText);
-			// Run saliency downscale/readback for next-step inference
+			// Run saliency inference with configurable frequency; reuse last result on skipped frames
+			ReportComposed(m_targetTimestampNs, 0);
 			if (m_saliency) {
-				m_saliency->Process(m_FrameRender->GetTexture(false, m_targetTimestampNs).Get());
+				m_inferFrameCounter++;
+				int every = get_infer_every_n_frames();
+				if ((m_inferFrameCounter % (uint64_t)every) == 1) { // infer on the first of each N
+					m_saliency->Process(m_FrameRender->GetTexture(false, m_targetTimestampNs).Get());
+				}
+				ReportInferenced(m_targetTimestampNs, 0);
 				// Forward latest saliency map (left eye) to encoder for QP map generation
 				std::vector<float> saliency;
 				int salW = 0, salH = 0;
@@ -106,6 +113,8 @@
 						}
 					}
 				}
+			}else{
+				ReportInferenced(m_targetTimestampNs, 0);
 			}
 			return true;
 		}
