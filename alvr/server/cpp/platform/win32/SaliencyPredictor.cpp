@@ -758,10 +758,10 @@ void SaliencyPredictor::Process(ID3D11Texture2D* srcTexture) {
 		}
 		try {
 			c10::InferenceMode no_grad(true);
-			Info("SaliencyPredictor: input device: %s, hidden defined=%d on=%s\n",
-				x.is_cuda() ? "cuda" : "cpu",
-				(int)hidden.defined(),
-				hidden.defined() ? (hidden.is_cuda() ? "cuda" : "cpu") : "n/a");
+			// Info("SaliencyPredictor: input device: %s, hidden defined=%d on=%s\n",
+			// 	x.is_cuda() ? "cuda" : "cpu",
+			// 	(int)hidden.defined(),
+			// 	hidden.defined() ? (hidden.is_cuda() ? "cuda" : "cpu") : "n/a");
 			auto out = m_module.forward(inputs).toTuple();
 			if (module_on_cuda) { torch::cuda::synchronize(); }
 			torch::Tensor sal = out->elements()[0].toTensor();
@@ -804,13 +804,13 @@ void SaliencyPredictor::Process(ID3D11Texture2D* srcTexture) {
 					}
 				}
 			}
-			Info("SaliencyPredictor: output device: %s\n", m_lastSaliency.is_cuda() ? "cuda" : "cpu");
-			Info("SaliencyPredictor: inference ok. saliency sizes=%lld dims, last=(%lld,%lld)\n", (long long)m_lastSaliency.dim(), (long long)m_lastSaliency.size(-2), (long long)m_lastSaliency.size(-1));
+			//Info("SaliencyPredictor: output device: %s\n", m_lastSaliency.is_cuda() ? "cuda" : "cpu");
+			//Info("SaliencyPredictor: inference ok. saliency sizes=%lld dims, last=(%lld,%lld)\n", (long long)m_lastSaliency.dim(), (long long)m_lastSaliency.size(-2), (long long)m_lastSaliency.size(-1));
 			// quick stats
 			auto cpu = m_lastSaliency.flatten().to(torch::kFloat32).cpu();
 			float minv = cpu.min().item<float>();
 			float maxv = cpu.max().item<float>();
-			Info("SaliencyPredictor: saliency range [%.6f, %.6f]\n", minv, maxv);
+			//Info("SaliencyPredictor: saliency range [%.6f, %.6f]\n", minv, maxv);
 		} catch (const c10::Error& e) {
 			Error("SaliencyPredictor: inference failed: %s\n", e.what());
 		}
@@ -824,7 +824,7 @@ void SaliencyPredictor::Process(ID3D11Texture2D* srcTexture) {
 	double ms_resize = std::chrono::duration<double, std::milli>(t_after_resize - t_begin).count();
 	double ms_infer = std::chrono::duration<double, std::milli>(t_after_infer - t_after_resize).count();
 	double ms_total = std::chrono::duration<double, std::milli>(t_after_infer - t_begin).count();
-	Info("Saliency latency: resize+copy=%.3fms infer=%.3fms total=%.3fms\n", ms_resize, ms_infer, ms_total);
+	//Info("Saliency latency: resize+copy=%.3fms infer=%.3fms total=%.3fms\n", ms_resize, ms_infer, ms_total);
 
 	m_frameCounter++;
 #ifdef ALVR_SALIENCY

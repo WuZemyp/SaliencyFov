@@ -26,3 +26,5 @@ bool g_enable_qpmap_csv_dumps = false;
 // QP const and QO_Max in NvEncoder
 
 // CPU resize vs GPU resize config in SaliencyPredictor
+
+//check modelPath = in SaliencyPredictor
