@@ -502,7 +502,7 @@ private:
     float hiBoundC_y = 0.8956953;
     float edge_ratio_y = 5.0;//no change
     float eye_size_ratio_y = 0.993421;//no change
-    bool checkFrameType = true;
+    bool checkFrameType = false;
     std::fstream e_buf;
     std::fstream eye_buf;
     std::fstream qp_buf;

@@ -22,3 +22,7 @@ int g_infer_every_n_frames = 2;
 
 // Enable CSV dumps by default? Keep off for performance.
 bool g_enable_qpmap_csv_dumps = false;
+
+// QP const and QO_Max in NvEncoder
+
+// CPU resize vs GPU resize config in SaliencyPredictor
